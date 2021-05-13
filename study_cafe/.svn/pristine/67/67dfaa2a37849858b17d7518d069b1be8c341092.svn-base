@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.rent.dao.RentMapper">
+	
+	<select id="selectTimeByStudyRoomNo" resultType="timeTable">
+        SELECT  A.TIME24
+			 ,  CASE WHEN SYSDATE > (SELECT #{pickDate}  + (A.TIME24/24) FROM DUAL) 
+				THEN 1
+	            ELSE (
+	                 SELECT  NVL(COUNT(*),0)
+	                   FROM  TB_RENT_STUDYROOM B
+	                  WHERE  B.STUDYROOM_NO = #{studyroomNo}
+	                    AND  (
+	                         SELECT #{pickDate}  + (A.TIME24/24)  
+	                           FROM  DUAL
+	                         )  
+	                         BETWEEN  B.STUDYROOM_RESERV_START AND (B.STUDYROOM_RESERV_END - 0.001)
+                 	 )
+                END AS USE_YN
+	   <![CDATA[ 
+		  FROM  (
+		         SELECT  TO_CHAR(LEVEL -1, '00') AS TIME24
+		           FROM  DUAL
+		        CONNECT  BY LEVEL <= 24
+		        ) A
+		     ]]>	
+	</select>
+
+	<select id="selectTimeOnKioskByStudyRoomNo" resultType="timeTable">
+        SELECT  A.TIME24
+			 ,  CASE WHEN SYSDATE > (SELECT  TO_DATE(TO_CHAR(SYSDATE,'YYYY/MM/DD'))  + (A.TIME24/24) FROM DUAL) 
+				THEN 1
+	            ELSE (
+	                 SELECT  NVL(COUNT(*),0)
+	                   FROM  TB_RENT_STUDYROOM B
+	                  WHERE  B.STUDYROOM_NO = #{studyroomNo}
+	                    AND  (
+	                         SELECT  TO_DATE(TO_CHAR(SYSDATE,'YYYY/MM/DD'))  + (A.TIME24/24)  
+	                           FROM  DUAL
+	                         )  
+	                         BETWEEN  B.STUDYROOM_RESERV_START AND (B.STUDYROOM_RESERV_END - 0.001)
+                 	 )
+                END AS USE_YN
+	   <![CDATA[ 
+		  FROM  (
+		         SELECT  TO_CHAR(LEVEL -1, '00') AS TIME24
+		           FROM  DUAL
+		        CONNECT  BY LEVEL <= 24
+		        ) A
+		     ]]>	
+	</select>
+
+
+	<insert id="insertStudyRoomRent">
+		<selectKey order="BEFORE" keyProperty="studyroomReservNo" resultType="int">
+			SELECT STUDYROOM_RENT_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT  
+		  INTO  TB_RENT_STUDYROOM 
+		     (  STUDYROOM_RESERV_NO
+		     ,  STUDYROOM_RESERV_DATE
+		     ,  STUDYROOM_NO
+		     ,  MEM_ID
+		     ,  STUDYROOM_RESERV_START
+		     ,  STUDYROOM_TOTAL_PRICE
+		     ,  STUDYROOM_RESERV_END
+		     ,  STUDYROOM_TID
+			 )  
+		VALUES  
+		     (  #{studyroomReservNo}
+		     ,  #{studyroomReservDate}
+		     ,  #{studyroomNo}
+		     ,  #{memId}
+		     ,  #{studyroomReservStart}
+		     ,  #{studyroomTotalPrice}
+		     ,  #{studyroomReservEnd}
+		     ,  #{studyroomTid}
+		)       
+			
+	</insert>
+	
+	<insert id="insertStudyRoomRentOnKiosk">
+		<selectKey order="BEFORE" keyProperty="studyroomReservNo" resultType="int">
+			SELECT STUDYROOM_RENT_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT  
+		  INTO  TB_RENT_STUDYROOM 
+		     (  STUDYROOM_RESERV_NO
+		     ,  STUDYROOM_RESERV_DATE
+		     ,  STUDYROOM_NO
+		     ,  MEM_ID
+		     ,  STUDYROOM_RESERV_START
+		     ,  STUDYROOM_TOTAL_PRICE
+		     ,  STUDYROOM_RESERV_END
+		     ,  STUDYROOM_TID
+			 )  
+		VALUES  
+		     (  #{studyroomReservNo}
+		     ,  #{studyroomReservDate}
+		     ,  #{studyroomNo}
+		     ,  #{memId}
+		     ,  TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD') || #{strStudyroomReservStart},'YYYYMMDDHH24')
+		     ,  #{studyroomTotalPrice}
+		     ,  TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD') || #{strStudyroomReservEnd},'YYYYMMDDHH24')
+		     ,  #{studyroomTid}
+		)       
+			
+	</insert>
+	
+	
+	<select id="selectRentStudyRoomDetail" resultType="kr.co.scm.rent.vo.RentStudyRoomVO" >
+	
+		SELECT  A.STUDYROOM_RESERV_NO
+		     ,  A.STUDYROOM_RESERV_DATE
+		     ,  A.STUDYROOM_NO
+		     ,  A.MEM_ID
+		     ,  A.STUDYROOM_RESERV_START
+		     ,  A.STUDYROOM_IN
+		     ,  A.STUDYROOM_OUT
+		     ,  A.STUDYROOM_TOTAL_PRICE
+		     ,  A.STUDYROOM_RESERV_END
+		     ,  A.STUDYROOM_TID
+		     ,  C.STORE_NAME
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B, TB_STORE C
+		 WHERE  A.STUDYROOM_RESERV_NO = #{studyroomReservNo}
+		   AND  A.STUDYROOM_NO = B.STUDYROOM_NO
+		   AND  B.STORE_CODE   = C.STORE_CODE
+		   
+	
+	</select>
+	
+	<update id="deleteStudyRoomRent">
+		DELETE 
+		  FROM  TB_RENT_STUDYROOM
+		 WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</update>
+	
+	<select id="getStudyRoomReserveNo" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  NVL(MAX(STUDYROOM_RESERV_NO),'0') STUDYROOM_RESERV_NO
+          FROM  TB_RENT_STUDYROOM
+         WHERE  STUDYROOM_TID = #{studyroomTid }
+	</select>
+	
+	
+	<select id="checkStudyRoomAvailable" resultType="str">
+		SELECT  NVL(MAX(STUDYROOM_RESERV_NO),'0')
+          FROM  TB_RENT_STUDYROOM
+         WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</select>
+	
+	<select id="checkInStudyRoom" >
+		UPDATE  TB_RENT_STUDYROOM
+    	   SET  STUDYROOM_IN        = SYSDATE
+		 WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</select>
+	
+	<select id="checkOutStudyRoom" >
+		UPDATE  TB_RENT_STUDYROOM
+    	   SET  STUDYROOM_OUT        = SYSDATE
+		 WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</select>
+	
+	<select id="goingInStudyRoom">
+		UPDATE  TB_RENT_STUDYROOM
+    	   SET  GOING_OUT        	= 'N'
+		 WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</select>
+	<select id="goingOutStudyRoom">
+		UPDATE  TB_RENT_STUDYROOM
+    	   SET  GOING_OUT        	= 'Y'
+		 WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</select>
+	
+	<!--//////////////// seat ////////////////////////-->
+	
+	<insert id="rentSeat">
+		<selectKey order="BEFORE" resultType="int" keyProperty="rentSeatNo"> 
+			SELECT RENT_SEAT_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_RENT_SEAT 
+		     (  SEAT_NO
+		     ,  RENT_SEAT_NO
+		     ,  SEAT_TOTALTIME
+		     ,  STORE_CODE
+		     ,  MEM_ID
+		     ) 
+		VALUES 
+		     (  #{seatNo}
+		     ,  #{rentSeatNo}
+		     ,  0
+		     ,  #{storeCode}
+		     ,  #{memId}
+		)
+	
+	</insert>
+	
+	<select id="checkSeatAvailable" resultType="str">
+		SELECT  NVL(MAX(RENT_SEAT_NO), '0')
+          FROM  TB_RENT_SEAT
+         WHERE  RENT_SEAT_NO = #{rentSeatNo}
+	</select>
+	
+	
+	<update id="checkInSeat">
+		UPDATE  TB_RENT_SEAT
+    	   SET  SEAT_IN 	 = SYSDATE
+         WHERE  RENT_SEAT_NO = #{rentSeatNo}
+	</update>
+	
+	<update id="checkOutSeat">
+		UPDATE  TB_RENT_SEAT
+    	   SET  SEAT_OUT 	   = SYSDATE
+             ,  SEAT_TOTALTIME = CEIL((SYSDATE - SEAT_IN) * 60 * 24)
+         WHERE  RENT_SEAT_NO   = #{rentSeatNo}
+	</update>
+	
+	<select id="getCheckedOut" resultType="str">
+		SELECT  NVL(MAX(TO_CHAR(SEAT_OUT)),'0')
+		  FROM  TB_RENT_SEAT
+		 WHERE  RENT_SEAT_NO = #{rentSeatNo}
+	</select>
+	
+	<select id="getRentSeat" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_NO
+		     ,  SEAT_IN
+		     ,  SEAT_OUT
+		     ,  RENT_SEAT_NO
+		     ,  SEAT_TOTALTIME
+		     ,  STORE_CODE
+		     ,  MEM_ID
+		     ,  UPPER(GOING_OUT) GOING_OUT
+		  FROM  TB_RENT_SEAT
+		 WHERE  RENT_SEAT_NO = #{rentSeatNo}   
+	</select>
+	
+	<update id="goingOut">
+		UPDATE  TB_RENT_SEAT
+    	   SET  GOING_OUT 	 = 'Y'
+		 WHERE  RENT_SEAT_NO = #{rentSeatNo}
+	</update>
+	
+	<update id="goingIn">
+		UPDATE  TB_RENT_SEAT
+    	   SET  GOING_OUT 	 = 'N'
+		 WHERE  RENT_SEAT_NO = #{rentSeatNo}
+	</update>
+	
+	<select id="getSeat" parameterType="kr.co.scm.user.vo.MemberVO" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_NO
+		     ,  SEAT_IN
+		     ,  SEAT_OUT
+		     ,  RENT_SEAT_NO
+		     ,  SEAT_TOTALTIME
+		     ,  STORE_CODE
+		     ,  MEM_ID
+		     ,  GOING_OUT
+		  FROM  TB_RENT_SEAT
+		 WHERE  MEM_ID = #{memId}
+	 	   AND  SEAT_OUT IS NULL
+	 	   AND  STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="getSeatIn" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_NO
+		     ,  SEAT_IN
+		     ,  SEAT_OUT
+		     ,  RENT_SEAT_NO
+		     ,  SEAT_TOTALTIME
+		     ,  STORE_CODE
+		     ,  MEM_ID
+		     ,  GOING_OUT
+		  FROM  TB_RENT_SEAT
+		 WHERE  MEM_ID = #{memId}
+	 	   AND  SEAT_IN IS NULL
+	</select>
+	
+	<select id="checkSeatIn" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_NO
+		     ,  SEAT_IN
+		     ,  SEAT_OUT
+		     ,  RENT_SEAT_NO
+		     ,  SEAT_TOTALTIME
+		     ,  STORE_CODE
+		     ,  MEM_ID
+		     ,  GOING_OUT
+		  FROM  TB_RENT_SEAT
+		 WHERE  MEM_ID = #{memId}
+	 	   AND  SEAT_IN IS NOT NULL
+	 	   AND  SEAT_OUT IS NULL
+	</select>
+	
+	<select id="getStudyroomIn" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  STUDYROOM_RESERV_NO
+	   		 ,  STUDYROOM_RESERV_DATE
+	   		 ,  STUDYROOM_NO
+	   		 ,  MEM_ID
+	   		 ,  STUDYROOM_RESERV_START
+	   		 ,  STUDYROOM_IN
+	   		 ,  STUDYROOM_OUT
+	   		 ,  STUDYROOM_TOTAL_PRICE
+	   		 ,  STUDYROOM_RESERV_END
+	   		 ,  STUDYROOM_TID
+		  FROM  TB_RENT_STUDYROOM
+	     WHERE  MEM_ID = #{memId}
+	       AND  STUDYROOM_IN IS NULL
+	</select>
+	
+	<select id="checkRentEquipOutByMemId" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  RENT_EQUIP_NO
+		     ,  EQUIP_RENT_IN
+		     ,  MEM_ID
+		     ,  EQUIP_CODE
+		     ,  EQUIP_RENT_OUT
+		     ,  EQUIP_TOTAL_PRICE
+		     ,  EQUIP_RENT_END
+		  FROM  TB_RENT_EQUIP
+		 WHERE  MEM_ID = #{memId}
+		   AND  EQUIP_RENT_OUT IS NULL
+	
+	</select>
+	
+	<select id="getRentEquip" resultType="str">
+		SELECT  NVL(MAX(TO_CHAR(EQUIP_RENT_OUT)),'0')
+		  FROM  TB_RENT_EQUIP
+		 WHERE  RENT_EQUIP_NO = #{rentEquipNo}
+	</select>
+	
+	<select id="nowUseEquip" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  RENT_EQUIP_NO
+   			 ,  EQUIP_RENT_IN
+   			 ,  MEM_ID
+   			 ,  EQUIP_CODE
+   			 ,  EQUIP_RENT_OUT
+   			 ,  EQUIP_TOTAL_PRICE
+   			 ,  EQUIP_RENT_END
+		  FROM  TB_RENT_EQUIP
+	     WHERE  RENT_EQUIP_NO = #{rentEquipNo}
+	   	   AND  MEM_ID = #{memId}
+	   	   AND  EQUIP_RENT_IN IS NOT NULL
+	   	   AND  EQUIP_RENT_END IS NULL
+	   	   AND  SYSDATE &lt;= EQUIP_RENT_OUT
+	</select>
+	
+	<select id="overUseEquip" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  RENT_EQUIP_NO
+   			 ,  EQUIP_RENT_IN
+   			 ,  MEM_ID
+   			 ,  EQUIP_CODE
+   			 ,  EQUIP_RENT_OUT
+   			 ,  EQUIP_TOTAL_PRICE
+   			 ,  EQUIP_RENT_END
+		  FROM  TB_RENT_EQUIP
+    	 WHERE  RENT_EQUIP_NO = #{rentEquipNo}
+    	   AND  MEM_ID = #{memId}
+    	   AND  EQUIP_RENT_IN IS NOT NULL
+    	   AND  EQUIP_RENT_END IS NULL
+    	   AND  SYSDATE &gt; EQUIP_RENT_OUT
+	</select>
+	
+	<select id="myEquip" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  RENT_EQUIP_NO
+   			 ,  A.EQUIP_RENT_IN
+   			 ,  A.MEM_ID
+   			 ,  A.EQUIP_CODE
+   			 ,  A.EQUIP_RENT_OUT
+   			 ,  A.EQUIP_TOTAL_PRICE
+             ,  B.EQUIP_NAME
+             ,  C.MEM_NAME
+             ,  C.MEM_TEL
+		  FROM  TB_RENT_EQUIP A, TB_EQUIP B, TB_MEMBER C
+    	 WHERE  A.EQUIP_CODE = B.EQUIP_CODE
+           AND  A.MEM_ID = C.MEM_ID
+           AND  A.RENT_EQUIP_NO = #{rentEquipNo}
+	</select>
+	
+	<update id="rentEquipEnd">
+		UPDATE  TB_RENT_EQUIP
+    	   SET  EQUIP_RENT_END  =  SYSDATE
+		 WHERE  RENT_EQUIP_NO = #{rentEquipNo}
+	</update>	
+	
+	<select id="overRentTime" resultType="int">
+		SELECT  NVL(TO_NUMBER(CEIL((SYSDATE - EQUIP_RENT_OUT) * 60 * 24)), 0) AS OVER_RENT_TIME
+		  FROM  TB_RENT_EQUIP
+		 WHERE  RENT_EQUIP_NO  = #{rentEquipNo}
+	</select>
+	
+	<update id="overPayCharge">
+		UPDATE  TB_RENT_EQUIP
+		   SET  EQUIP_TOTAL_PRICE  =  #{equipTotalPrice} + #{overPayPrice}
+		 WHERE  RENT_EQUIP_NO = #{rentEquipNo}
+	</update>
+	
+	<select id="selectRecentReservStudyroom" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		SELECT  A.STUDYROOM_RESERV_NO
+	   		 ,  A.STUDYROOM_RESERV_DATE
+	   		 ,  A.STUDYROOM_NO
+	   		 ,  A.MEM_ID
+	   		 ,  A.STUDYROOM_RESERV_START
+	   		 ,  A.STUDYROOM_TOTAL_PRICE
+	   		 ,  A.STUDYROOM_RESERV_END
+	   		 ,  C.MEM_NAME
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B, TB_MEMBER C
+	     WHERE  A.STUDYROOM_NO = B.STUDYROOM_NO
+	       AND  A.MEM_ID = C.MEM_ID
+	       AND  B.STORE_CODE = #{storeCode}
+	     ORDER  BY STUDYROOM_RESERV_DATE DESC
+		<![CDATA[	
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  >  0
+			    ) D3
+		 WHERE  ROWNUM <= 5
+		   ]]>
+	</select>
+	
+	
+	<select id="currentMemSeat" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_LIST.* 
+         	 ,  NVL(SEAT_USE.SEAT_OCCUFIED,0) AS SEAT_OCCUFIED  
+      	  	 ,  SEAT_USE.RENT_SEAT_NO AS RENT_SEAT_NO
+      	  FROM  (
+        		SELECT   SEAT_NO
+             	     ,   STORE_CODE
+             		 ,   SEAT_USEABLE
+             		 ,   SEAT_INFO
+          		  FROM   TB_SEAT
+        		 WHERE   STORE_CODE 	 =  #{storeCode}
+           		   AND   SEAT_LOCATION 	!=  0
+                   AND   SEAT_NO = #{seatNo}
+         		 ORDER   BY SEAT_LOCATION
+             	     )   SEAT_LIST
+     		 LEFT JOIN   (
+        	     		 SELECT   COUNT(*) AS SEAT_OCCUFIED
+             			      ,   A.SEAT_NO
+             			      ,   A.RENT_SEAT_NO
+          				   FROM   TB_RENT_SEAT A
+         				  WHERE   SYSDATE  &lt;= NVL(A.SEAT_OUT,SYSDATE)
+                          AND     MEM_ID = #{memId}
+         				  GROUP   BY A.SEAT_NO, A.RENT_SEAT_NO
+            				  )   SEAT_USE
+     						 ON   SEAT_LIST.SEAT_NO  =  SEAT_USE.SEAT_NO
+	</select>
+	
+	<select id="curSeatTime" resultType="int">
+		SELECT  NVL(TO_NUMBER(CEIL((SYSDATE - SEAT_IN) * 60 * 24)), 0) AS CUR_SEAT_TIME 
+		  FROM  TB_RENT_SEAT
+		 WHERE  RENT_SEAT_NO  =  #{rentSeatNo}
+	</select>
+	
+	<select id="currentMemStudyRoom" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  STUDYROOM_RESERV_NO
+	   		 ,  STUDYROOM_RESERV_DATE
+	   		 ,  STUDYROOM_NO
+	   		 ,  MEM_ID
+	   		 ,  STUDYROOM_RESERV_START
+	   		 ,  STUDYROOM_IN
+	   		 ,  STUDYROOM_OUT
+	   		 ,  STUDYROOM_TOTAL_PRICE
+	   		 ,  STUDYROOM_RESERV_END
+	   		 ,  STUDYROOM_TID
+		  FROM  TB_RENT_STUDYROOM
+	     WHERE  MEM_ID = #{memId}
+	       AND  STUDYROOM_IN IS NOT NULL
+	       AND  STUDYROOM_OUT IS NULL
+           AND  STUDYROOM_RESERV_START &lt; SYSDATE
+           AND  STUDYROOM_RESERV_END &gt; SYSDATE
+	</select>
+	
+	
+	<select id="selectReservedList" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+	
+		SELECT  A.STUDYROOM_RESERV_NO
+	   		 ,  A.STUDYROOM_RESERV_DATE
+	   		 ,  A.STUDYROOM_NO
+	   		 ,  A.MEM_ID
+	   		 ,  A.STUDYROOM_RESERV_START
+	   		 ,  A.STUDYROOM_IN
+	   		 ,  A.STUDYROOM_OUT
+	   		 ,  A.STUDYROOM_TOTAL_PRICE
+	   		 ,  A.STUDYROOM_RESERV_END
+	   		 ,  A.STUDYROOM_TID
+	   		 ,  B.STUDYROOM_NAME
+	   		 ,  B.STORE_CODE
+	   		 ,  B.STUDYROOM_CAPA
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B
+	     WHERE  B.STORE_CODE = #{storeCode}
+           AND  A.STUDYROOM_NO = B.STUDYROOM_NO
+          <if test="searchReservStart != null">
+           <![CDATA[
+           AND  A.STUDYROOM_RESERV_START >= #{searchReservStart} 
+           ]]> 
+          </if>
+          <if test="searchReservEnd != null">
+           <![CDATA[
+           AND  A.STUDYROOM_RESERV_END <= #{searchReservEnd}
+           ]]> 
+          </if>
+          
+          <if test="searchCondition != null and searchCondition != ''">
+           AND  A.STUDYROOM_NO = #{searchCondition}
+          </if>
+	     ORDER  BY A.STUDYROOM_RESERV_NO DESC
+		
+     <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectReservedListCnt" resultType="int">
+	
+		SELECT  NVL(COUNT(A.STUDYROOM_RESERV_NO),0)
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B
+	     WHERE  B.STORE_CODE = #{storeCode}
+           AND  A.STUDYROOM_NO = B.STUDYROOM_NO
+          <if test="searchReservStart != null">
+           <![CDATA[
+           AND  A.STUDYROOM_RESERV_START >= #{searchReservStart} 
+           ]]> 
+          </if>
+          <if test="searchReservEnd != null">
+           <![CDATA[
+           AND  A.STUDYROOM_RESERV_END <= #{searchReservEnd}
+           ]]> 
+          </if>
+          
+          <if test="searchCondition != null and searchCondition != ''">
+           AND  A.STUDYROOM_NO = #{searchCondition}
+          </if>           
+           
+           
+	     ORDER  BY A.STUDYROOM_RESERV_NO DESC
+
+	</select>
+	
+	
+	
+</mapper>
+
+
+
+

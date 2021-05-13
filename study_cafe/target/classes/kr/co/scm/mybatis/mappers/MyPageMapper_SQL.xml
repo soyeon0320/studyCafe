@@ -1,0 +1,813 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.mypage.dao.MyPageMapper">
+	
+	
+	<select id="getMyInfomation" resultType="kr.co.scm.user.vo.MemberVO">
+		SELECT  MEM_ID
+   			 ,  MEM_NAME
+   			 ,  MEM_PASS
+   			 ,  MEM_TEL
+   			 ,  MEM_EMAIL
+   			 ,  MEM_BIR
+   			 ,  MEM_DELETED
+   			 ,  MEM_ROUTE
+   			 ,  MEM_GEN
+   			 ,  MEM_MEMO
+   			 ,  MEM_QR
+		  FROM  TB_MEMBER
+    	 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<update id="myInfoChange">
+		UPDATE  TB_MEMBER 
+		   SET  MEM_NAME  =  #{memName}
+		     ,  MEM_TEL  =  #{memTel}
+		     ,  MEM_EMAIL  =  #{memEmail}
+		 WHERE  MEM_ID = #{memId}
+	</update>
+		   
+	
+	<select id="freeBoardList" resultType="kr.co.scm.board.vo.BoardVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		SELECT  FREE_NO
+			 ,  FREE_TITLE
+			 ,  FREE_CONTENT
+			 ,  FREE_REG_DATE
+			 ,  FREE_CNT
+			 ,  mem_id
+		  FROM  TB_BOARD_FREE
+		 WHERE  MEM_ID = #{memId}
+		 ORDER  BY  FREE_NO DESC
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="replyFreeNo" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  FREE_NO
+			 ,  REPLY_NO
+		  FROM  TB_BOARD_FREE_REPLY
+		 WHERE  FREE_NO IN (<foreach collection="array" separator="," item="freeNo">#{freeNo}</foreach>)	  
+	</select>
+	
+	<delete id="deleteReply">
+		DELETE  FROM TB_BOARD_FREE_REPLY
+		 WHERE  REPLY_NO = #{replyNo}
+	</delete>
+	
+	<delete id="freeChk">
+		DELETE  FROM TB_BOARD_FREE
+		 WHERE  FREE_NO  IN (<foreach collection="array" separator="," item="freeNo">#{freeNo}</foreach>)
+	</delete>
+	
+	<select id="scrapFreeNo" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  FREE_NO FROM TB_FREE_SCRAP
+		 WHERE  FREE_NO IN (<foreach collection="array" separator="," item="freeNo">#{freeNo}</foreach>)
+	</select>
+	
+	<delete id="deleteFreeScrap">
+		DELETE FROM TB_FREE_SCRAP
+		 WHERE FREE_NO = #{freeNo}
+	</delete>
+	
+	<select id="infoBoardList" resultType="kr.co.scm.board.vo.InfoVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		SELECT  INFO_NO
+			 ,  INFO_TITLE
+			 ,  INFO_CONTENT
+			 ,  INFO_REG_DATE
+			 ,  INFO_CNT
+			 ,  MEM_ID
+		  FROM  TB_BOARD_INFO
+		 WHERE  MEM_ID = #{memId}
+		 ORDER  BY INFO_NO DESC
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="replyInfoNo" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  INFO_NO
+			 ,  REPLY_NO
+		  FROM  TB_BOARD_INFO_REPLY
+		 WHERE  INFO_NO IN (<foreach collection="array" separator="," item="infoNo">#{infoNo}</foreach>)	  
+	</select>
+
+	<delete id="deleteInfoReply">
+		DELETE  FROM TB_BOARD_INFO_REPLY
+		 WHERE  REPLY_NO = #{replyNo}
+	</delete>
+	
+	<delete id="infoChk">
+		DELETE  FROM TB_BOARD_INFO
+		 WHERE  INFO_NO  IN (<foreach collection="array" separator="," item="infoNo">#{infoNo}</foreach>)
+	</delete>
+	
+	<select id="scrapInfoNo" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  INFO_NO FROM TB_INFO_SCRAP
+		 WHERE  INFO_NO IN (<foreach collection="array" separator="," item="infoNo">#{infoNo}</foreach>)
+	</select>
+	
+	<delete id="deleteInfoScrap">
+		DELETE FROM TB_INFO_SCRAP
+		 WHERE INFO_NO = #{infoNo}
+	</delete>
+	
+	<select id="myFreeBoardCount" resultType="int">
+		SELECT  COUNT(*) TOTALCOUNT
+		  FROM  TB_BOARD_FREE
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="myInfoBoardCount" resultType="int">
+		SELECT  COUNT(*) TOTALCOUNT
+		  FROM  TB_BOARD_INFO
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="myStudygroupCount" resultType="int">
+		SELECT  COUNT(*) TOTALCOUNT
+		  FROM  TB_BOARD_STUDYGROUP
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="studygroupList" resultType="kr.co.scm.board.vo.StudygroupVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		SELECT  STUDYGROUP_NO
+			 ,  STUDYGROUP_TITLE
+			 ,  STUDYGROUP_CONTENT
+			 ,  STUDYGROUP_REG_DATE
+			 ,  STUDYGROUP_CNT
+			 ,  MEM_ID
+		  FROM  TB_BOARD_STUDYGROUP
+		 WHERE  MEM_ID = #{memId}
+		 ORDER  BY STUDYGROUP_NO DESC
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	 
+	</select>
+	
+	<select id="replyStudyNo" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  STUDYGROUP_NO
+			 ,  REPLY_NO
+		  FROM  TB_BOARD_STUDYGROUP_REPLY
+		 WHERE  STUDYGROUP_NO IN (<foreach collection="array" separator="," item="studygroupNo">#{studygroupNo}</foreach>)	  
+	</select>
+	
+	<select id="scrapStudyNo" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  STUDYGROUP_NO FROM TB_STUDYGROUP_SCRAP
+		 WHERE  STUDYGROUP_NO IN (<foreach collection="array" separator="," item="studygroupNo">#{studygroupNo}</foreach>)
+	</select>
+	
+	<delete id="deleteStudyReply">
+		DELETE  FROM TB_BOARD_STUDYGROUP_REPLY
+		 WHERE  REPLY_NO = #{replyNo}
+	</delete>
+	
+	<delete id="deleteStudyScrap">
+		DELETE FROM TB_STUDYGROUP_SCRAP
+		 WHERE STUDYGROUP_NO = #{studygroupNo}
+	</delete>
+	
+	<delete id="studyChk">
+		DELETE  FROM TB_BOARD_STUDYGROUP
+		 WHERE  STUDYGROUP_NO  IN (<foreach collection="array" separator="," item="studygroupNo">#{studygroupNo}</foreach>)
+	</delete>
+		
+	<select id="buyList" resultType="kr.co.scm.mypage.vo.BuyListVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		SELECT  B.TICKET_BUY_NO
+	    	 ,  B.TICKET_BUY_DATE
+	       	 ,  C.TICKET_NAME
+	       	 ,  C.TICKET_PRICE
+		  FROM  TB_MEMBER A, TB_TICKET_BUY B, TB_TICKET C
+		 WHERE  A.MEM_ID 	=  B.MEM_ID
+		   AND  B.TICKET_NO =  C.TICKET_NO
+		 ORDER  BY B.TICKET_BUY_NO DESC
+		   <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="searchBuyListCount" resultType="int">
+		SELECT  COUNT(*) TOTALCOUNT
+		  FROM  TB_TICKET_BUY
+		 WHERE  TICKET_BUY_NO IS NOT NULL 
+	</select>
+	
+	<select id="myTicketList" resultType="kr.co.scm.mypage.vo.BuyListVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+	
+		SELECT  B.TICKET_BUY_NO
+	    	 ,  B.TICKET_BUY_DATE
+	       	 ,  C.TICKET_NAME
+	       	 ,  C.TICKET_PRICE
+	       	 ,  B.TICKET_TIME_REMAIN
+	       	 ,  C.TICKET_CODE
+		  FROM  TB_MEMBER A, TB_TICKET_BUY B, TB_TICKET C
+		 WHERE  A.MEM_ID 	=  B.MEM_ID
+		   AND  B.TICKET_NO =  C.TICKET_NO
+		   AND  A.MEM_ID  =  #{memId}
+		 ORDER  BY B.TICKET_BUY_NO DESC
+		 
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > 0
+			    ) D3
+		 WHERE  ROWNUM <= 5
+			    ]]>	 
+	</select>
+	
+	<select id="myStudyRoomList" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+	
+		SELECT  AA.*
+        	 ,  NVL(BB.FLAG,0) AS FLAG
+  		  FROM  (
+  				SELECT  Z.*
+    			  FROM  (
+    			  	    SELECT  A.STUDYROOM_IN
+	         				 ,  A.STUDYROOM_OUT
+	         				 ,  A.STUDYROOM_RESERV_NO
+	         				 ,  A.STUDYROOM_RESERV_DATE
+	         				 ,  A.STUDYROOM_NO
+	         				 ,  A.MEM_ID
+	         				 ,  A.STUDYROOM_RESERV_START
+	         				 ,  A.STUDYROOM_TOTAL_PRICE
+	         				 ,  A.STUDYROOM_RESERV_END
+	         				 ,  A.STUDYROOM_TID
+	       	 				 ,  B.STUDYROOM_CAPA
+	       	 				 ,  C.STORE_NAME
+	       	 				 ,  B.STUDYROOM_NAME
+		  				  FROM  TB_RENT_STUDYROOM A ,TB_STUDYROOM B, TB_STORE C
+		 				 WHERE  A.STUDYROOM_NO=B.STUDYROOM_NO
+		   				   AND  B.STORE_CODE = C.STORE_CODE
+	 	   				   AND  A.MEM_ID = #{memId}
+	 	   				   AND  A.STUDYROOM_IN is not null
+		 				 )  Z ) AA
+         
+         			 LEFT JOIN  (
+                    			SELECT  STUDYROOM_RESERV_NO
+                         			 ,  COUNT(*) AS FLAG
+                    			  FROM  TB_STUDYROOM_REVIEWS
+                    		  GROUP BY 	STUDYROOM_RESERV_NO
+                    					) BB
+            ON  AA.STUDYROOM_RESERV_NO = BB.STUDYROOM_RESERV_NO
+         ORDER  BY AA.STUDYROOM_RESERV_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+			    ]]>	 	   
+	</select>
+	
+	<select id="selectReservationList" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+	
+		SELECT  AA.*
+        	 ,  NVL(BB.FLAG,0) AS FLAG
+  		  FROM  (
+  				SELECT  Z.*
+    			  FROM  (
+    			  	    SELECT  A.STUDYROOM_IN
+	         				 ,  A.STUDYROOM_OUT
+	         				 ,  A.STUDYROOM_RESERV_NO
+	         				 ,  A.STUDYROOM_RESERV_DATE
+	         				 ,  A.STUDYROOM_NO
+	         				 ,  A.MEM_ID
+	         				 ,  A.STUDYROOM_RESERV_START
+	         				 ,  A.STUDYROOM_TOTAL_PRICE
+	         				 ,  A.STUDYROOM_RESERV_END
+	         				 ,  A.STUDYROOM_TID
+	       	 				 ,  B.STUDYROOM_CAPA
+	       	 				 ,  C.STORE_NAME
+	       	 				 ,  B.STUDYROOM_NAME
+		  				  FROM  TB_RENT_STUDYROOM A ,TB_STUDYROOM B, TB_STORE C
+		 				 WHERE  A.STUDYROOM_NO=B.STUDYROOM_NO
+		   				   AND  B.STORE_CODE = C.STORE_CODE
+	 	   				   AND  A.MEM_ID = #{memId}
+		 				 )  Z ) AA
+         
+         			 LEFT JOIN  (
+                    			SELECT  STUDYROOM_RESERV_NO
+                         			 ,  COUNT(*) AS FLAG
+                    			  FROM  TB_STUDYROOM_REVIEWS
+                    		  GROUP BY 	STUDYROOM_RESERV_NO
+                    					) BB
+            ON  AA.STUDYROOM_RESERV_NO = BB.STUDYROOM_RESERV_NO
+         ORDER  BY AA.STUDYROOM_RESERV_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+			    ]]>	 	   
+	</select>
+	
+	
+	<select id="myStudyRoomListCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_RENT_STUDYROOM
+		 WHERE  MEM_ID = #{memId}	
+	</select>
+	
+	<select id="mySeatList" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (		
+	
+		SELECT  AA.*
+        	 ,  NVL(BB.FLAG,0) AS FLAG
+  		  FROM  (
+  				SELECT  Z.*
+    			  FROM  (
+    			  	    SELECT  A.SEAT_IN
+	         				 ,  A.SEAT_OUT
+	         				 ,  A.SEAT_NO
+	         				 ,  A.RENT_SEAT_NO
+	       	 				 ,  C.STORE_NAME
+		  				  FROM  TB_RENT_SEAT A ,TB_SEAT B, TB_STORE C
+		 				 WHERE  A.SEAT_NO = B.SEAT_NO
+		 				   AND  A.STORE_CODE = B.STORE_CODE
+		   				   AND  B.STORE_CODE = C.STORE_CODE
+	 	   				   AND  A.MEM_ID =  #{memId}
+		 				   )  Z ) AA
+         
+         			 LEFT JOIN  (
+                    			SELECT  SEAT_REVIEWS_NO
+                                     ,  RENT_SEAT_NO
+                         			 ,  COUNT(*) AS FLAG
+                    			  FROM  TB_SEAT_REVIEWS
+                    		  GROUP BY 	SEAT_REVIEWS_NO, RENT_SEAT_NO
+                    					) BB
+            ON  AA.RENT_SEAT_NO = BB.RENT_SEAT_NO
+            ORDER  BY AA.RENT_SEAT_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>			   
+	</select>
+	
+	<select id="mySeatListCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_RENT_SEAT
+		 WHERE  MEM_ID = #{memId}	
+	</select>
+	
+	<select id="myStudyRoomReview" resultType="kr.co.scm.mypage.vo.StudyRoomReviewsVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+		SELECT  C.STORE_NAME
+	         ,  E.STUDYROOM_GRADE
+	         ,  E.REVIEWS_CONTENT
+	         ,  E.STUDYROOM_REVIEWS_REG_DATE
+	         ,  E.REVIEWS_NO
+	         ,  C.STORE_CODE
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B, TB_STORE C, TB_STUDYROOM_REVIEWS E
+		 WHERE  A.STUDYROOM_NO			=  B.STUDYROOM_NO
+		   AND  B.STORE_CODE			=  C.STORE_CODE
+	       AND  A.STUDYROOM_RESERV_NO 	=  E.STUDYROOM_RESERV_NO
+		   AND  A.MEM_ID = #{memId}
+		 ORDER  BY E.STUDYROOM_RESERV_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	 
+	</select>
+	
+	<select id="myStudyRoomReviewCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_STUDYROOM_REVIEWS
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="mySeatReviewCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_SEAT_REVIEWS
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="mySeatReview" resultType="kr.co.scm.mypage.vo.SeatReviewsVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+		SELECT  A.SEAT_REVIEWS_NO
+		     ,  A.SEAT_REVIEWS_CONTENT
+		     ,  A.SEAT_GRADE
+		     ,  A.MEM_ID
+		     ,  A.RENT_SEAT_NO
+		     ,  A.SEAT_REVIEWS_REG_DATE
+		     ,  C.STORE_NAME
+		     ,  C.STORE_CODE
+		  FROM  TB_SEAT_REVIEWS A, TB_RENT_SEAT B, TB_STORE C
+	     WHERE  A.RENT_SEAT_NO 	=  B.RENT_SEAT_NO
+	       AND  B.STORE_CODE 	=  C.STORE_CODE
+	       AND  A.mem_id = #{memId}
+	     ORDER  BY A.SEAT_REVIEWS_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="seatReviewDetail" resultType="kr.co.scm.mypage.vo.SeatReviewsVO">
+		SELECT  C.STORE_NAME
+	         ,  D.SEAT_GRADE
+	         ,  D.SEAT_REVIEWS_CONTENT
+	         ,  D.SEAT_REVIEWS_REG_DATE
+	         ,  D.SEAT_REVIEWS_NO
+		  FROM  TB_RENT_SEAT A, TB_SEAT B, TB_STORE C, TB_SEAT_REVIEWS D
+		 WHERE  A.SEAT_NO=B.SEAT_NO
+		   AND  B.STORE_CODE = C.STORE_CODE
+	       AND  A.RENT_SEAT_NO = D.RENT_SEAT_NO
+		   AND  D.SEAT_REVIEWS_NO=#{seatReviewsNo}
+	       AND  B.STORE_CODE=#{storeCode}
+	</select>
+	
+	<select id="studyRoomReviewDetail" resultType="kr.co.scm.mypage.vo.StudyRoomReviewsVO">
+		SELECT  D.STORE_NAME
+	         ,  C.STUDYROOM_GRADE
+	         ,  C.REVIEWS_CONTENT
+	         ,  C.STUDYROOM_REVIEWS_REG_DATE
+	         ,  C.REVIEWS_NO
+	         ,  B.STORE_CODE
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B, TB_STUDYROOM_REVIEWS C, TB_STORE D
+		 WHERE  B.STORE_CODE = D.STORE_CODE
+		   AND  A.STUDYROOM_NO=B.STUDYROOM_NO
+	       AND  A.STUDYROOM_RESERV_NO = C.STUDYROOM_RESERV_NO
+		   AND  C.REVIEWS_NO=#{reviewsNo}
+	</select>
+	
+	<insert id="studyRoomReviewRegist">
+		<selectKey order="BEFORE" keyProperty="reviewsNo" resultType="int">
+			SELECT STREVIEW_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT
+	      INTO  TB_STUDYROOM_REVIEWS 
+	      	 (  REVIEWS_CONTENT
+	      	 ,	REVIEWS_NO
+	     	 ,	MEM_ID
+	      	 ,	STUDYROOM_GRADE
+	      	 ,	STUDYROOM_RESERV_NO
+	      	 ,	STUDYROOM_REVIEWS_REG_DATE
+	      	 )
+		VALUES 
+			 (	#{reviewsContent}
+			 ,  STREVIEW_SEQ.NEXTVAL
+			 ,  #{memId}
+			 ,  #{studyRoomGrade}
+			 ,  #{studyroomReservNo}
+			 ,  SYSDATE
+			 )
+	</insert>
+	
+	<insert id="seatRegistReview">
+		<selectKey order="BEFORE" keyProperty="seatReviewsNo" resultType="int">
+			SELECT SEATREVIEW_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_SEAT_REVIEWS 
+		     (  SEAT_REVIEWS_NO
+   			 ,  SEAT_REVIEWS_CONTENT
+   			 ,  SEAT_GRADE
+   			 ,  MEM_ID
+   			 ,  RENT_SEAT_NO
+   			 ,  SEAT_REVIEWS_REG_DATE
+			 )  
+	    VALUES  
+	    	 (	SEATREVIEW_SEQ.NEXTVAL
+   			 ,  #{seatReviewsContent}
+   			 ,  #{seatGrade}
+   			 ,  #{memId}
+   			 ,  #{rentSeatNo}
+   			 ,  SYSDATE
+			 )
+	</insert>
+	
+	<update id="studyRoomReivewModify">
+		UPDATE  TB_STUDYROOM_REVIEWS 
+		   SET  STUDYROOM_GRADE  =  #{studyRoomGrade}
+		     ,  REVIEWS_CONTENT  =  #{reviewsContent}
+		 WHERE  REVIEWS_NO  =  #{reviewsNo}
+	</update>
+	
+	<delete id="reviewRemove">
+		DELETE  FROM TB_STUDYROOM_REVIEWS
+		 WHERE  REVIEWS_NO  =  #{reviewsNo}
+	</delete>
+	
+	<update id="seatReviewModify">
+		UPDATE  TB_SEAT_REVIEWS
+		   SET  SEAT_GRADE  		  =  #{seatGrade}
+		     ,  SEAT_REVIEWS_CONTENT  =  #{seatReviewsContent}
+		 WHERE  SEAT_REVIEWS_NO  =  #{seatReviewsNo}
+	</update>
+	
+	<delete id="seatReviewRemove">
+		DELETE  FROM TB_SEAT_REVIEWS
+	 	 WHERE  SEAT_REVIEWS_NO=#{seatReviewsNo}
+	</delete>
+	
+	<select id="getReservStudyRoom" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  STUDYROOM_RESERV_NO
+		     ,  STUDYROOM_RESERV_DATE
+		     ,  STUDYROOM_NO
+		     ,  MEM_ID
+		     ,  STUDYROOM_RESERV_START
+		     ,  STUDYROOM_IN
+		     ,  STUDYROOM_OUT
+		     ,  STUDYROOM_TOTAL_PRICE
+		     ,  STUDYROOM_RESERV_END
+		     ,  STUDYROOM_TID
+	 	  FROM  TB_RENT_STUDYROOM
+	 	 WHERE  STUDYROOM_RESERV_NO = #{studyroomReservNo}
+	</select>
+	
+	<select id="getRentSeat" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_NO
+		     ,  SEAT_IN
+		     ,  SEAT_OUT
+		     ,  RENT_SEAT_NO
+		     ,  SEAT_TOTALTIME
+		     ,  STORE_CODE
+		     ,  MEM_ID
+		     ,  GOING_OUT
+	 	  FROM  TB_RENT_SEAT
+	 	 WHERE  RENT_SEAT_NO = #{rentSeatNo}
+	</select>
+	
+	<select id="selectReivewList" resultType="kr.co.scm.mypage.vo.ReviewVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		
+		SELECT  NVL(SEAT_REVIEWS.RENT_SEAT_NO,ROOM_REVIEWS.STUDYROOM_RESERV_NO ) 	AS REVIEW_NO
+		     ,  NVL(SEAT_REVIEWS.STORE_CODE,ROOM_REVIEWS.STORE_CODE) 				AS STORE_CODE
+		     ,  NVL(SEAT_REVIEWS.KIND,ROOM_REVIEWS.KIND) 							AS KIND
+		     ,  NVL(  SEAT_REVIEWS.SEAT_REVIEWS_REG_DATE
+		     		, ROOM_REVIEWS.STUDYROOM_REVIEWS_REG_DATE) 						AS REIVEW_REG_DATE
+		     ,  NVL(SEAT_REVIEWS.SEAT_GRADE,ROOM_REVIEWS.STUDYROOM_GRADE) 			AS GRADE
+		     ,  NVL(SEAT_REVIEWS.MEM_ID,ROOM_REVIEWS.MEM_ID) 						AS MEM_ID
+		     ,  NVL(SEAT_REVIEWS.STORE_NAME,ROOM_REVIEWS.STORE_NAME) 				AS STORE_NAME
+		     ,  NVL(SEAT_REVIEWS.SEAT_REVIEWS_CONTENT,ROOM_REVIEWS.REVIEWS_CONTENT) AS REVIEW_CONTENT
+		  FROM
+	            (
+	            SELECT  C.RENT_SEAT_NO
+		             ,  A.STORE_CODE
+		             ,  A.STORE_NAME
+		             ,  'SEAT' AS KIND
+		             ,  C.SEAT_REVIEWS_REG_DATE
+		             ,  C.SEAT_GRADE
+		             ,  C.MEM_ID
+		             ,  C.SEAT_REVIEWS_CONTENT
+		          FROM  TB_STORE A
+		         RIGHT  JOIN TB_RENT_SEAT B
+		            ON  A.STORE_CODE = B.STORE_CODE
+		         INNER  JOIN TB_SEAT_REVIEWS C
+		            ON  C.RENT_SEAT_NO = B.RENT_SEAT_NO
+		        ) SEAT_REVIEWS
+		  FULL  OUTER JOIN  (
+		  					SELECT  C.STUDYROOM_RESERV_NO
+			                     ,  A.STORE_CODE 
+			                     ,  A.STORE_NAME
+			                     ,  'ROOM' AS KIND
+			                     ,  C.STUDYROOM_REVIEWS_REG_DATE
+			                     ,  C.STUDYROOM_GRADE
+			                     ,  C.MEM_ID
+			                     ,  C.REVIEWS_CONTENT
+			                  FROM  TB_STORE A
+			                 RIGHT  JOIN  (
+			                 			  SELECT  D.*
+			                                   ,  E.STORE_CODE
+			                                FROM  TB_RENT_STUDYROOM D
+			                               INNER  JOIN TB_STUDYROOM E
+			                                  ON  D.STUDYROOM_NO = E.STUDYROOM_NO
+			                              ) B
+			                    ON  A.STORE_CODE = B.STORE_CODE
+			                 INNER  JOIN TB_STUDYROOM_REVIEWS C
+			                    ON  C.STUDYROOM_RESERV_NO = B.STUDYROOM_RESERV_NO
+			                ) ROOM_REVIEWS
+		    ON  SEAT_REVIEWS.KIND = ROOM_REVIEWS.KIND
+		 ORDER  BY REIVEW_REG_DATE DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectStoreScrapList" resultType="kr.co.scm.user.vo.StoreScrapVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+	
+		SELECT  C.STORE_CODE
+			 ,	C.STORE_NAME
+			 ,  C.STORE_ADDR
+			 ,  FN_GET_GRADE(A.STORE_CODE) AS STORE_GRADE
+		  FROM  TB_STORE_BOOKMARK A
+		 INNER  JOIN TB_MEMBER B ON A.MEM_ID = B.MEM_ID 
+		 INNER  JOIN TB_STORE C ON A.STORE_CODE = C.STORE_CODE
+		 WHERE  B.MEM_ID = #{memId}
+		 ORDER  BY  A.REG_DATE DESC
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectStoreScrapListCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_STORE_BOOKMARK A
+		 INNER  JOIN  TB_MEMBER B ON A.MEM_ID = B.MEM_ID 
+		 INNER  JOIN  TB_STORE C ON A.STORE_CODE = C.STORE_CODE
+		 WHERE  B.MEM_ID = #{memId}
+	</select>
+	
+	<select id="selectBoardScrapList" resultType="kr.co.scm.board.vo.BoardVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  B.FREE_NO
+			 ,  B.FREE_TITLE
+			 ,  B.MEM_ID
+			 ,  B.FREE_REG_DATE
+			 ,  B.FREE_CNT
+		  FROM  TB_MEMBER A
+		 RIGHT  JOIN TB_BOARD_FREE B ON A.MEM_ID = B.MEM_ID
+		 INNER  JOIN TB_FREE_SCRAP C ON B.FREE_NO = C.FREE_NO
+		 WHERE  C.MEM_ID = #{memId}
+		 ORDER  BY B.FREE_NO DESC
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectBoardScrapListCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_FREE_SCRAP
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="selectInfoScrapList" resultType="kr.co.scm.board.vo.InfoVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+	
+		SELECT  B.INFO_NO
+			 ,  B.INFO_TITLE
+			 ,  B.MEM_ID
+			 ,  B.INFO_REG_DATE
+			 ,  B.INFO_CNT
+		  FROM  TB_MEMBER A
+		 RIGHT  JOIN TB_BOARD_INFO B ON A.MEM_ID = B.MEM_ID
+		 INNER  JOIN TB_INFO_SCRAP C ON B.INFO_NO = C.INFO_NO
+		 WHERE  C.MEM_ID = #{memId}
+		 ORDER  BY B.INFO_NO DESC
+		  <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectInfoScrapListCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_INFO_SCRAP
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="selectStudygroupScrapList" resultType="kr.co.scm.board.vo.StudygroupVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+	
+		SELECT  B.STUDYGROUP_NO
+			 ,	B.STUDYGROUP_TITLE
+			 ,  B.MEM_ID
+			 ,  B.STUDYGROUP_REG_DATE
+			 ,  B.STUDYGROUP_CNT
+		  FROM  TB_MEMBER A
+		 RIGHT  JOIN TB_BOARD_STUDYGROUP B ON A.MEM_ID = B.MEM_ID
+		 INNER  JOIN TB_STUDYGROUP_SCRAP C ON B.STUDYGROUP_NO = C.STUDYGROUP_NO
+		 WHERE  C.MEM_ID = #{memId}
+		 ORDER  BY B.STUDYGROUP_NO DESC
+		  <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectStudygroupScrapListCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_STUDYGROUP_SCRAP
+		 WHERE  MEM_ID = #{memId}
+	</select>
+</mapper>

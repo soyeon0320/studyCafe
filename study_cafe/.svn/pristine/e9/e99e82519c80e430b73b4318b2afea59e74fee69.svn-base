@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.supply.dao.SupplyMapper">
+	
+	<sql id="search_order">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 'BS02'.toString()">
+					AND EE.PRODUCT_NAME LIKE '%'||#{searchKeyword}||'%'
+				</when>
+			</choose>
+			<choose>
+				<when test="searchCondition == 'BS01'.toString()">
+					AND FF.STORE_NAME LIKE '%'||#{searchKeyword}||'%'
+				</when>
+			</choose>
+			<choose>
+				<when test="searchCondition == 'BS03'.toString()">
+					AND EE.ORDER_PRODUCT_NO LIKE '%'||#{searchKeyword}||'%'
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="orderManageList"  resultType="kr.co.scm.supply.vo.OrderListViewVO">
+		SELECT  A.ORDER_PRODUCT_TOTAL_PRICE
+	         ,  A.ORDER_PRODUCT_NO
+	         ,  CASE WHEN COUNT(C.PRODUCT_NAME) > 1 THEN MIN(C.PRODUCT_NAME) || '외 ' || (COUNT(1) - 1)|| '건'
+	            	 WHEN COUNT(C.PRODUCT_NAME) = 1 THEN MIN(C.PRODUCT_NAME)
+	       		END
+	         ,  D.STORE_NAME
+	         ,  A.ORDER_PRODUCT_REG_DATE
+	         ,  A.ORDER_PRODUCT_STATUS
+		  FROM  TB_ORDER_PRODUCT A, TB_CART B, TB_PRODUCT C, TB_STORE D
+		 WHERE  A.STORE_CODE  =  D.STORE_CODE
+		   AND  A.ORDER_PRODUCT_NO  =  B.ORDER_PRODUCT_NO
+		   AND  B.PRODUCT_CODE=C.PRODUCT_CODE
+		 GROUP  BY A.ORDER_PRODUCT_NO, A.ORDER_PRODUCT_TOTAL_PRICE, A.ORDER_PRODUCT_NO, D.STORE_NAME, A.ORDER_PRODUCT_REG_DATE, A.ORDER_PRODUCT_STATUS
+		 ORDER  BY A.ORDER_PRODUCT_NO
+	</select>
+	
+	<select id="supplyManageList" resultType="kr.co.scm.supply.vo.OrderListViewVO">
+			
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+                        
+        		SELECT  EE.*
+        		     ,  FF.STORE_NAME
+          		  FROM  (
+	    				SELECT  BB.*
+	    				     ,  AA.PRODUCT_NAME
+    	  				  FROM  TB_ORDER_PRODUCT BB
+						 INNER  JOIN  (
+									  SELECT  CASE WHEN COUNT(D.PRODUCT_NAME) > 1 THEN MIN(D.PRODUCT_NAME) || ' 외 ' || (COUNT(1) - 1)|| '건'
+							     			   	   WHEN COUNT(D.PRODUCT_NAME) = 1 THEN MIN(D.PRODUCT_NAME)
+											   END AS PRODUCT_NAME
+					     				   ,  E.ORDER_PRODUCT_NO
+					  					FROM  TB_CART E, TB_PRODUCT D
+					 				   WHERE  D.PRODUCT_CODE = E.PRODUCT_CODE
+				 					   GROUP  BY E.ORDER_PRODUCT_NO
+				 					  ) AA
+						    ON  BB.ORDER_PRODUCT_NO = AA.ORDER_PRODUCT_NO
+						 WHERE  BB.ORDER_PRODUCT_STATUS IN ('OS03', 'OS05', 'OS06')
+						 <if test="orderProductStatus != null and orderProductStatus != ''">
+						   AND  BB.ORDER_PRODUCT_STATUS = #{orderProductStatus} 
+						 </if>
+					     ORDER  BY BB.ORDER_PRODUCT_NO DESC
+						) EE 
+				 INNER  JOIN TB_STORE FF 
+	                ON  EE.STORE_CODE = FF.STORE_CODE
+	                 <include refid="search_order"/>
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="supplyManagePagingListCount"  resultType="int">
+		 SELECT  COUNT(ORDER_PRODUCT_NO) TOTALCOUNT
+		   FROM  TB_ORDER_PRODUCT 
+		  WHERE  ORDER_PRODUCT_NO IS NOT NULL
+			AND  ORDER_PRODUCT_STATUS IN ('OS03', 'OS05', 'OS06')
+			<if test="searchCondition != null and searchCondition != ''">
+			AND  ORDER_PRODUCT_STATUS = #{orderProductStatus}	
+			</if>
+	</select>
+	
+	<select id="supplyBeforeList" resultType="kr.co.scm.supply.vo.OrderListViewVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+                        
+        		SELECT  EE.*
+        		     ,  FF.STORE_NAME
+          		  FROM  (
+	    				SELECT  BB.*
+	    				     ,  AA.PRODUCT_NAME
+    	  				  FROM  TB_ORDER_PRODUCT BB
+						 INNER  JOIN  (
+									  SELECT  CASE WHEN COUNT(D.PRODUCT_NAME) > 1 THEN MIN(D.PRODUCT_NAME) || ' 외 ' || (COUNT(1) - 1)|| '건'
+							     			   	   WHEN COUNT(D.PRODUCT_NAME) = 1 THEN MIN(D.PRODUCT_NAME)
+											   END AS PRODUCT_NAME
+					     				   ,  E.ORDER_PRODUCT_NO
+					  					FROM  TB_CART E, TB_PRODUCT D
+					 				   WHERE  D.PRODUCT_CODE = E.PRODUCT_CODE
+				 					   GROUP  BY E.ORDER_PRODUCT_NO
+				 					  ) AA
+						    ON  BB.ORDER_PRODUCT_NO = AA.ORDER_PRODUCT_NO
+						 <if test="searchCondition != null and searchCondition != ''">
+						 WHERE  BB.ORDER_PRODUCT_STATUS = #{orderProductStatus} 
+						 </if>
+						   AND  BB.ORDER_PRODUCT_STATUS = 'OS01'
+						) EE 
+				 INNER  JOIN TB_STORE FF 
+	                ON  EE.STORE_CODE = FF.STORE_CODE
+						 <include refid="search_order"/>
+			     ORDER  BY EE.ORDER_PRODUCT_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	
+	</select>
+	
+	<select id="supplyBeforePagingListCount" resultType="int">
+		 SELECT  COUNT(ORDER_PRODUCT_NO) TOTALCOUNT
+		   FROM  TB_ORDER_PRODUCT 
+		  WHERE  ORDER_PRODUCT_NO IS NOT NULL
+			AND  ORDER_PRODUCT_STATUS  =  'OS01'
+	</select>
+	
+	<update id="orderCheck">
+		UPDATE  TB_ORDER_PRODUCT
+		   SET  ORDER_PRODUCT_STATUS  =  'OS03'
+	     WHERE  ORDER_PRODUCT_NO IN ( <foreach  collection="array" separator="," item="no">#{no}</foreach> )
+	</update>
+	
+	<select id="orderDetailProductList" resultType="kr.co.scm.supply.vo.OrderListViewVO">
+		SELECT  B.PRODUCT_CODE
+			 ,	A.ORDER_PRODUCT_REG_DATE
+			 ,	C.PRODUCT_NAME
+			 ,	C.PRODUCT_PRICE      
+		  FROM  TB_ORDER_PRODUCT A, TB_CART B, TB_PRODUCT C
+		 WHERE  A.ORDER_PRODUCT_NO  =  B.ORDER_PRODUCT_NO
+		   AND  B.PRODUCT_CODE 		=  C.PRODUCT_CODE
+		   AND  A.ORDER_PRODUCT_NO  =  #{orderProductNo}
+		 ORDER  BY A.ORDER_PRODUCT_REG_DATE
+	</select>
+	
+	<select id="orderDetailOwnerList" resultType="kr.co.scm.supply.vo.OrderListViewVO">
+		SELECT  A.BUSINESS_NUMBER
+			 ,  C.STORE_ADDR
+			 ,  A.OWNER_TEL
+			 ,  A.OWNER_NAME
+		  FROM  TB_OWNER A, TB_CONTRACT_AGREEMENT B, TB_STORE C, TB_ORDER_PRODUCT D
+		 WHERE  A.OWNER_ID 		  =  B.OWNER_ID
+		   AND  B.STORE_CODE 	  =  C.STORE_CODE
+		   AND  C.STORE_CODE	  =  D.STORE_CODE
+		   AND  ORDER_PRODUCT_NO  =  #{orderProductNo}
+	</select>
+	
+	<select id="getRefundOrderProduct" resultType="kr.co.scm.order.vo.CartRefundVO">
+		SELECT  ORDER_PRODUCT_NO
+   			 ,  REFUND_PRODUCT_QUANTITY
+   			 ,  PRODUCT_CODE
+		  FROM  TB_CART_REFUND
+    	 WHERE  ORDER_PRODUCT_NO IN ( <foreach collection="array" separator="," item="refundNo">#{refundNo}</foreach>)
+	</select>
+	
+	<update id="updateProductQuantity">
+		UPDATE  TB_PRODUCT
+		   SET  PRODUCT_QUANTITY = PRODUCT_QUANTITY + #{productQuantity}
+		 WHERE  PRODUCT_CODE = #{productCode}
+	</update>
+	
+	<update id="refundCheck">
+		UPDATE  TB_ORDER_PRODUCT
+		   SET  ORDER_PRODUCT_STATUS  = 'OS06'
+	     WHERE  ORDER_PRODUCT_NO IN ( <foreach  collection="array" separator="," item="no">#{no}</foreach> )
+	     
+	</update>
+		
+</mapper>
+
+
+
+

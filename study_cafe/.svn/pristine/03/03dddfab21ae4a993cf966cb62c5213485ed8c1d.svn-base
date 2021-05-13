@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.order.dao.OrderMapper">
+
+	<sql id="search_egov">
+		<if test="searchCondition != null and searchCondition != ''">
+		   AND  A.ORDER_PRODUCT_STATUS = #{searchCondition}
+		 </if>
+		
+		<if test="startDate != null">
+		<![CDATA[
+		   AND  A.ORDER_PRODUCT_REG_DATE >= #{startDate}
+		 ]]>
+		 </if>
+		<if test="endDate != null">
+		<![CDATA[
+		   AND  A.ORDER_PRODUCT_REG_DATE <= #{endDate}
+		 ]]>
+		 </if>
+	</sql>
+
+
+
+
+
+	<select id="selectOrderListByStoreCode" resultType="orderView">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  A.ORDER_PRODUCT_REG_DATE
+			 ,  A.ORDER_PRODUCT_NO
+			 ,  A.STORE_CODE
+			 ,  A.ORDER_PRODUCT_TOTAL_PRICE
+			 ,  A.ORDER_PRODUCT_LOCATION
+			 ,  A.ORDER_PRODUCT_TOTAL_COUNT
+			 ,  A.ORDER_DELIVERY_LOCATION
+		     ,  TITLE_LIST.PRODUCT_NAME
+			 ,  FN_GETCODENM(A.ORDER_PRODUCT_STATUS) AS ORDER_PRODUCT_STATUS_LABEL
+			 ,  ORDER_PRODUCT_STATUS
+		  FROM  TB_ORDER_PRODUCT A
+		 INNER  JOIN (
+		             SELECT  CASE  WHEN COUNT(C.PRODUCT_NAME) > 1 THEN MIN(C.PRODUCT_NAME) || ' 외 ' || (COUNT(1) - 1)|| '건'
+		                           WHEN COUNT(C.PRODUCT_NAME) = 1 THEN MIN(C.PRODUCT_NAME)
+		                      END  AS PRODUCT_NAME
+		                  ,  B.ORDER_PRODUCT_NO
+		               FROM  TB_CART B ,TB_PRODUCT C
+		              WHERE  C.PRODUCT_CODE = B.PRODUCT_CODE
+		              GROUP  BY B.ORDER_PRODUCT_NO
+		             ) TITLE_LIST
+		    ON  A.ORDER_PRODUCT_NO 	= TITLE_LIST.ORDER_PRODUCT_NO
+		 WHERE  A.STORE_CODE 		= #{storeCode}
+		  <include refid="search_egov"/>
+		 ORDER  BY A.ORDER_PRODUCT_NO DESC
+		 
+	   		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+
+	<select id="selectOrderListCntByStoreCode" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_ORDER_PRODUCT A
+		 WHERE  A.STORE_CODE 		= #{storeCode}
+		  <include refid="search_egov"/>
+	</select>
+	
+	
+	<insert id="insertOrder">
+		<selectKey resultType="int" keyProperty="orderProductNo" order="BEFORE">
+			SELECT ORDER_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+	
+		INSERT 
+		  INTO  TB_ORDER_PRODUCT 
+		     (  ORDER_PRODUCT_REG_DATE
+		     ,  ORDER_PRODUCT_NO
+		     ,  STORE_CODE
+		     ,  ORDER_PRODUCT_STATUS
+		     ,  ORDER_PRODUCT_TOTAL_PRICE
+		     ,  ORDER_PRODUCT_TOTAL_COUNT
+		     )  
+		VALUES  
+		     (  #{orderProductRegDate}
+		     ,  #{orderProductNo}
+		     ,  #{storeCode}
+		     ,  #{orderProductStatus}
+		     ,  #{orderProductTotalPrice}
+		     ,  #{orderProductTotalCount}
+		     )
+	</insert>
+	
+	<insert id="insertCart">
+		INSERT 
+		  INTO  TB_CART 
+		     (  ORDER_PRODUCT_NO
+			 ,  ORDER_PRODUCT_QUANTITY
+			 ,  PRODUCT_CODE
+			 )  
+		VALUES  
+		     (  #{orderProductNo}
+			 ,  #{orderProductQuantity}
+			 ,  #{productCode}
+		     )  
+	</insert>
+	
+	<select id="selectOrderDetail" resultType="orderDetail">
+		SELECT  D.OWNER_NAME
+			 ,  D.OWNER_TEL
+			 ,  A.ORDER_PRODUCT_REG_DATE
+			 ,  A.ORDER_PRODUCT_NO
+			 ,  A.STORE_CODE
+			 ,  A.ORDER_PRODUCT_STATUS
+			 ,  FN_GETCODENM(A.ORDER_PRODUCT_STATUS) AS ORDER_PRODUCT_STATUS_LABEL
+			 ,  A.ORDER_PRODUCT_TOTAL_PRICE
+			 ,  A.ORDER_PRODUCT_TOTAL_COUNT
+			 ,  A.ORDER_DELIVERY_LOCATION
+			 ,  B.STORE_NAME
+			 ,  B.STORE_WIDTH
+			 ,  B.STORE_HEIGHT
+			 ,  B.STORE_TOTAL_SEAT
+			 ,  B.STORE_ADDR
+		  FROM  TB_ORDER_PRODUCT A, TB_STORE B, TB_CONTRACT_AGREEMENT C, TB_OWNER D
+		 WHERE  B.STORE_CODE 		= A.STORE_CODE
+		   AND  B.STORE_CODE		= C.STORE_CODE
+		   AND  D.OWNER_ID   		= C.OWNER_ID
+		   AND  A.ORDER_PRODUCT_NO 	= #{orderProductNo}
+	
+	</select>
+	
+	<select id="selectCartListByOrderNo" resultType="cart">
+		SELECT  ORDER_PRODUCT_NO
+		     ,  ORDER_PRODUCT_QUANTITY
+		     ,  PRODUCT_CODE
+		  FROM  TB_CART
+		 WHERE  ORDER_PRODUCT_NO = #{orderProductNo}
+	</select>
+
+	<update id="modifyCartList">
+		UPDATE  TB_CART
+		   SET  ORDER_PRODUCT_QUANTITY = #{orderProductQuantity}
+		 WHERE  ORDER_PRODUCT_NO 	   = #{orderProductNo}
+		   AND  PRODUCT_CODE 		   = #{productCode}
+	</update>
+
+	<update id="deleteEmptyProd">
+		DELETE  
+		  FROM  TB_CART
+		 WHERE  ORDER_PRODUCT_NO 	   = #{orderProductNo}
+		   AND  ORDER_PRODUCT_QUANTITY = 0		
+	</update>
+	
+	<update id="deleteOrderByOrderNo">
+		DELETE  
+		  FROM  TB_ORDER_PRODUCT
+	 	 WHERE  ORDER_PRODUCT_NO = #{orderProductNo}
+	</update>
+
+	<update id="deleteCartListByOrderNo">
+	   DELETE  
+	     FROM  TB_CART
+		WHERE  ORDER_PRODUCT_NO = #{orderProductNo}
+	</update>
+	
+	<update id="increaseCntByDeletedCartItem">
+		UPDATE  TB_PRODUCT
+		   SET  PRODUCT_QUANTITY = PRODUCT_QUANTITY + #{orderProductQuantity} 
+		 WHERE  PRODUCT_CODE 	 = #{productCode}
+	</update>
+	
+	<update id="updateOrderStatus">
+		UPDATE  TB_ORDER_PRODUCT
+		   SET  ORDER_PRODUCT_STATUS = #{orderProductStatus}
+		 WHERE  ORDER_PRODUCT_NO 	 = #{orderProductNo}
+	</update>
+	
+	<insert id="insertRefundCart">
+		INSERT 
+		  INTO  TB_CART_REFUND
+		     (  ORDER_PRODUCT_NO
+			 ,  REFUND_PRODUCT_QUANTITY
+			 ,  PRODUCT_CODE
+			 )  
+		VALUES  
+		     (  #{orderProductNo}
+			 ,  #{refundProductQuantity}
+			 ,  #{productCode}
+		     )  
+	</insert>
+	
+</mapper>

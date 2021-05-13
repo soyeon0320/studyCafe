@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.board.dao.NoticeMapper">
+
+	<sql id="search">
+		<if test="searchKeyword != null and searchKeyword != ''">
+	        <choose>
+	            <when test="searchCondition == 'nc'.toString()">
+					and notice_Content like '%'||#{searchKeyword}||'%'	
+				</when>
+	            <when test="searchCondition == 'nt'.toString()">
+					and notice_Title like '%'||#{searchKeyword}||'%'	
+				</when>
+	            <when test="searchCondition == 'ntc'.toString()">
+					and (
+						notice_Title like '%'||#{searchKeyword}||'%'
+						or
+						notice_Content like '%'||#{searchKeyword}||'%'						
+						)	
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="retrievePagingList" resultType="notice">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  NOTICE_NO
+			 ,  NOTICE_TITLE
+			 ,  NOTICE_CONTENT
+			 ,  NOTICE_REG_DATE
+			 ,  NOTICE_CNT
+			 ,  ADMIN_ID
+			 ,  NOTICE_START
+			 ,  NOTICE_END
+			 ,  NOTICE_PRIORITY
+		  FROM  TB_BOARD_NOTICE
+		 WHERE  1 = 1  			  	
+		<include refid="search" />
+		 ORDER  BY NOTICE_NO DESC
+		 
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+		   
+	</select>	
+	
+	<select id="retrievePagingListCount" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_BOARD_NOTICE
+		 WHERE  1 = 1  			  	
+		<include refid="search" />
+	</select>
+	
+	<select id="selectUpNoticeList" resultType="notice">
+		SELECT  NOTICE_NO
+			 ,  NOTICE_TITLE
+			 ,  NOTICE_CONTENT
+			 ,  NOTICE_REG_DATE
+			 ,  NOTICE_CNT
+			 ,  ADMIN_ID
+			 ,  NOTICE_START
+			 ,  NOTICE_END
+			 ,  NOTICE_PRIORITY
+		  FROM  TB_BOARD_NOTICE
+		 WHERE  1 = 1 
+		<![CDATA[
+		   AND  SYSDATE <= NOTICE_END
+		]]>	 
+	</select>
+	
+	
+	<!-- ////////////////////////////////////////////////////////////////////// -->
+	
+	<select id="selectNotice"  resultType="notice">
+		SELECT  NOTICE_NO       
+             ,  NOTICE_TITLE    
+             ,  NOTICE_CONTENT  
+             ,  NOTICE_REG_DATE 
+             ,  NOTICE_CNT      
+             ,  ADMIN_ID        
+             ,  NOTICE_START    
+             ,  NOTICE_END      
+             ,  NOTICE_PRIORITY 
+		  FROM  TB_BOARD_NOTICE
+		 WHERE  NOTICE_NO = #{noticeNo}
+	</select>
+	
+	<update id="insertNotice">
+		
+		<selectKey order="BEFORE" resultType="int" keyProperty="noticeNo"> 
+			SELECT NOTICE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+	
+		INSERT 
+		  INTO  TB_BOARD_NOTICE 
+		     (  NOTICE_NO      
+             ,  NOTICE_TITLE   
+             ,  NOTICE_CONTENT 
+             ,  NOTICE_REG_DATE
+             ,  NOTICE_CNT     
+             ,  ADMIN_ID       
+             ,  NOTICE_START   
+             ,  NOTICE_END     
+			 ) 
+	    VALUES 
+	    	 (  #{noticeNo}
+	    	 ,  #{noticeTitle}
+	    	 ,  #{noticeContent}
+	    	 ,  SYSDATE
+	    	 ,  0
+	    	 ,  'admin'
+	    	<choose>
+	            <when test="noticeStart == null">
+			 , null	
+				</when>
+	            <when test="noticeStart != null">
+	    	 ,  #{noticeStart}
+				</when>
+			</choose>
+			<choose>
+	            <when test="noticeEnd == null">
+   			 , null
+				</when>
+	            <when test="noticeEnd != null">
+	    	 ,  #{noticeEnd}
+				</when>
+			</choose>
+			 )
+			 
+	</update>
+	
+	<update id="updateNotice">
+		UPDATE  TB_BOARD_NOTICE
+		   SET  NOTICE_TITLE 	= #{noticeTitle}
+			 ,  NOTICE_CONTENT 	= #{noticeContent}
+			 ,  NOTICE_START 	= #{noticeStart}
+		     ,  NOTICE_END 		= #{noticeEnd}
+		 WHERE  NOTICE_NO 		= #{noticeNo}
+		 
+	</update>
+	
+	<update id="deleteNotice">
+		DELETE 
+		  FROM  TB_BOARD_NOTICE 
+		 WHERE  NOTICE_NO = #{noticeNo}
+	</update>
+	
+	<update id="increaseViewCnt">
+		UPDATE  TB_BOARD_NOTICE 
+		   SET  NOTICE_CNT = NOTICE_CNT + 1 
+		 WHERE  NOTICE_NO  = #{noticeNo}
+	</update>
+	
+
+</mapper>

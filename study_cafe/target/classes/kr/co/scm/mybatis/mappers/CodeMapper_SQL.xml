@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.common.dao.CodeMapper">
+
+	<select id="getLprodList" resultType="lprod">
+
+		SELECT  LPROD_CODE
+		     ,  LPROD_NAME
+		     ,  LPROD_ID
+		  FROM  TB_LPROD
+	</select>
+	
+	
+	<select id="selectDonmCode" resultType="addr">
+		SELECT  ADDR_DONM_CODE
+		     ,  ADDR_DONM_NAME
+		  FROM  TB_STORE_ADDR
+		 GROUP  BY ADDR_DONM_CODE,ADDR_DONM_NAME
+		 ORDER  BY ADDR_DONM_CODE
+	</select>
+	
+	<select id="selectSigugunCode" resultType="addr">
+		SELECT  ADDR_DONM_NAME
+		     ,  ADDR_DONM_CODE
+		     ,  ADDR_SIGUGUN_CODE
+		     ,  ADDR_SIGUGUN_NAME	
+		  FROM  TB_STORE_ADDR
+	     WHERE  ADDR_DONM_CODE = #{addrDonmCode}
+	   	 ORDER  BY ADDR_DONM_CODE
+	</select>
+	
+	<select id="selectCodeListByGroup"  resultType="cmmnCode"> 
+		SELECT  CODE_ID
+		     ,  CODE_ID_NM
+		     ,  CODE_ID_DC
+		     ,  USE_AT
+		     ,  CL_CODE
+		     ,  CODE_DEPTH
+		     ,  FRST_REGIST_PNTTM
+		     ,  FRST_REGISTER_ID
+		     ,  LAST_UPDT_PNTTM
+		     ,  LAST_UPDUSR_ID
+		  FROM  COMTCCMMNCODE
+		 WHERE  CL_CODE = #{clCode}
+		   AND  USE_AT = 'Y'
+		 ORDER  BY CODE_DEPTH
+	</select>
+	
+	<select id="getAddrDonm" resultType="str">
+		SELECT  DISTINCT ADDR_DONM_CODE
+		  FROM  TB_STORE_ADDR
+		 WHERE  ADDR_DONM_NAME LIKE #{addrDonmCode} || '%'
+	</select>
+
+	<select id="getAddrSigugun" resultType="str">
+		SELECT  ADDR_SIGUGUN_CODE
+		  FROM  TB_STORE_ADDR
+		 WHERE  ADDR_DONM_NAME LIKE #{addrDonmCode} || '%'
+		   AND  ADDR_SIGUGUN_NAME LIKE #{addrSigugunCode} || '%'
+	</select>
+	
+</mapper>
+
+
+
+

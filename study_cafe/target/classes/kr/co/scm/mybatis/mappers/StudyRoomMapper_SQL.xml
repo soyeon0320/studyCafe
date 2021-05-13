@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.store.dao.StudyRoomMapper">
+	
+	<select id="selectStudyRoomByStoreCode" resultType="studyRoom">
+		SELECT  STUDYROOM_NO
+		     ,  STORE_CODE
+		     ,  STUDYROOM_CAPA
+		     ,  STUDYROOM_OPTION
+		     ,  STUDYROOM_IMAGE
+		     ,  STUDYROOM_USE_PRICE
+		     ,  STUDYROOM_STATUS
+		     ,  STUDYROOM_NAME
+		     ,  (	<![CDATA[
+		     		SELECT COUNT(*)
+		     		  FROM TB_RENT_STUDYROOM B
+		     		 WHERE A.STUDYROOM_NO = B.STUDYROOM_NO
+		     		   AND SYSDATE > B.STUDYROOM_IN 
+		     		   AND SYSDATE < NVL(B.STUDYROOM_OUT,SYSDATE+1)
+		     		 ]]>
+		     	) AS STUDYROOM_OCUP
+		     ,  STUDYROOM_NAME || ' (' || STUDYROOM_CAPA || ')인' AS STUDYROOM_LABEL
+		  FROM  TB_STUDYROOM A
+	     WHERE  STORE_CODE = #{storeCode}
+	     ORDER  BY STUDYROOM_NO
+	</select>
+	
+	<select id="getStudyRoomListByStoreCode" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  A.*         
+   		  	 ,  NVL(STUDYROOM_USE.STUDYROOM_OCCUFIED,0) AS STUDYROOM_OCCUFIED
+             ,  STUDYROOM_USE.STUDYROOM_IN AS STUDYROOM_IN
+             ,  STUDYROOM_USE.STUDYROOM_OUT AS STUDYROOM_OUT
+             ,  STUDYROOM_USE.GOING_OUT AS GOING_OUT
+		  FROM  TB_STUDYROOM A
+    	     LEFT JOIN  (
+                        SELECT  B.STUDYROOM_NO
+                             ,  B.STUDYROOM_IN
+                             ,  B.STUDYROOM_OUT
+                             ,  B.GOING_OUT
+                             ,  NVL(TO_NUMBER(CEIL((B.STUDYROOM_OUT - B.STUDYROOM_IN) * 60 * 24)), 0) AS OVER_TIME
+                             ,  CASE WHEN B.STUDYROOM_IN &lt; SYSDATE AND NVL(B.STUDYROOM_OUT,SYSDATE+1) &gt; SYSDATE
+                                     THEN 1
+                                ELSE 0
+                                END AS STUDYROOM_OCCUFIED                                   
+        				  FROM  TB_RENT_STUDYROOM B, TB_MEMBER C
+        				 WHERE  B.MEM_ID  =  C.MEM_ID  
+                           AND  (STUDYROOM_NO, STUDYROOM_OUT) IN (
+                            	SELECT STUDYROOM_NO, NVL(MAX(STUDYROOM_OUT),SYSDATE) AS STUDYROOM_OUT FROM TB_RENT_STUDYROOM
+                            	GROUP BY STUDYROOM_NO
+                            	)
+                            	ORDER BY STUDYROOM_OUT
+    						 )  STUDYROOM_USE
+                ON A.STUDYROOM_NO = STUDYROOM_USE.STUDYROOM_NO    
+                WHERE  STORE_CODE  =  #{storeCode}   
+	</select>
+	
+	<select id="detailStudyRoomList" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+		  
+		SELECT  A.STUDYROOM_NO
+        	 ,  B.MEM_ID
+        	 ,  A.STORE_CODE
+        	 ,  B.STUDYROOM_IN
+        	 ,  B.STUDYROOM_OUT
+        	 ,  B.STUDYROOM_RESERV_START  
+        	 ,  B.STUDYROOM_RESERV_END
+        	 ,  B.STUDYROOM_RESERV_NO  
+    	  FROM  TB_STUDYROOM A, TB_RENT_STUDYROOM B
+    	 WHERE  A.STUDYROOM_NO = B.STUDYROOM_NO
+    	 <if test="studyroomNo != 0">
+  	   	   AND  A.STUDYROOM_NO = #{studyroomNo}
+    	 </if>
+    	 <if test="studyroomReservNo != 0">
+  	   	   AND  B.STUDYROOM_RESERV_NO = #{studyroomReservNo} 
+    	 </if>
+    	   <![CDATA[
+  			    ) D1
+  			    ) D2  
+  		 WHERE  RNUM  >= #{firstIndex}  
+ 			    ) D3  
+ 		 WHERE  ROWNUM <= #{recordCountPerPage}  
+  		   ]]> 
+	</select>
+	
+	<select id="rentStudyRoomCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_RENT_STUDYROOM
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	
+	<select id="selectStudyRoomMemberUsed" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+		  
+		SELECT  A.STUDYROOM_RESERV_DATE
+		     ,	B.STORE_CODE
+		     ,	A.STUDYROOM_NO
+		     ,	C.STORE_NAME
+		     ,	C.ADDR_DONM_CODE
+		     ,	C.ADDR_SIGUGUN_CODE
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B, TB_STORE C
+		 WHERE  A.MEM_ID = #{memId}
+		   AND	A.STUDYROOM_NO = B.STUDYROOM_NO
+		   AND  B.STORE_CODE = C.STORE_CODE
+	   <![CDATA[
+  			    ) D1
+  			    ) D2  
+  		 WHERE  RNUM  > 0
+ 			    ) D3  
+ 		 WHERE  ROWNUM <= 1 
+  		   ]]> 
+	</select>
+	
+	<select id="selectBookMarkStore" resultType="kr.co.scm.store.vo.StoreVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+		  
+		SELECT  A.STORE_CODE
+		     ,  A.STORE_NAME
+		  FROM  TB_STORE_BOOKMARK B ,TB_STORE A
+		 WHERE  A.STORE_CODE = B.STORE_CODE
+		   AND  B.MEM_ID= #{memId}
+		 ORDER  BY B.REG_DATE DESC
+	   <![CDATA[
+  			    ) D1
+  			    ) D2  
+  		 WHERE  RNUM  > 0
+ 			    ) D3  
+ 		 WHERE  ROWNUM <= 3 
+  		   ]]> 
+	</select>
+	
+	<insert id="insertInitList">
+		INSERT  
+		  INTO  TB_STUDYROOM 
+		     (  STUDYROOM_NO
+		     ,  STORE_CODE
+		     ,  STUDYROOM_CAPA
+		     ,  STUDYROOM_OPTION
+		     ,  STUDYROOM_IMAGE
+		     ,  STUDYROOM_USE_PRICE
+		     ,  STUDYROOM_STATUS
+		     ,  STUDYROOM_NAME
+		     ) 
+		VALUES 
+			 (  (SELECT MAX(STUDYROOM_NO)+1 FROM TB_STUDYROOM)
+			 ,  #{storeCode}
+			 ,  #{studyroomCapa}
+			 ,  null
+			 ,  #{studtyroomImage}
+			 ,  #{studyroomUsePrice}
+			 ,  #{studyroomStatus}
+			 ,  #{studyroomName}
+			 )
+	</insert>
+</mapper>
+
+
+
+

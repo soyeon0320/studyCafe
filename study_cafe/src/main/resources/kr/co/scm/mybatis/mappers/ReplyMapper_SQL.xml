@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.board.dao.ReplyMapper">
+
+	<select id="selectReplyList" resultType="kr.co.scm.board.vo.ReplyVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (		
+		
+		
+		SELECT  B.MEM_ID
+			 , 	B.REPLY_CONTENT
+			 , 	B.REPLY_NO
+			 , 	B.${noColumnName}
+			 ,	B.REPLY_REG_DATE
+		  FROM  ${replyTable} B, ${boardTable} A
+		 WHERE  A.${noColumnName} = B.${noColumnName}
+		   AND  A.${noColumnName} = #{boardNo}
+		 ORDER  BY B.REPLY_NO
+		   
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>		   
+	</select>
+	
+	<update id="insertReply">
+		<selectKey order="BEFORE" resultType="int" keyProperty="replyNo">
+			SELECT REPLY_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  ${replyTable} 
+			 (  REPLY_CONTENT
+			 ,  REPLY_NO
+			 ,  ${noColumnName}
+			 ,  REPLY_REG_DATE
+			 ,  MEM_ID
+			 ) 
+		VALUES
+		   	 (  #{replyContent}
+			 ,	#{replyNo}
+			 ,	#{boardNo}
+			 ,	SYSDATE
+			 ,	#{memId}
+			 )
+	</update>
+	
+	<update id="updateReply">
+		UPDATE  ${replyTable}
+		   SET  REPLY_CONTENT = #{replyModifyContent}
+		 WHERE  REPLY_NO = #{replyNo}
+	</update>
+	
+	<delete id="deleteReply">
+		DELETE  FROM ${replyTable}
+		 WHERE  REPLY_NO = #{replyNo}
+	</delete>
+	
+	<select id="selectReplyTotalCnt" resultType="int"> 
+		SELECT  COUNT(*)
+		  FROM  ${replyTable}
+		 WHERE  ${noColumnName} = #{boardNo}
+	</select>
+	
+	<select id="selectReply" resultType="kr.co.scm.board.vo.ReplyVO">
+		
+		SELECT  MEM_ID
+			 , 	REPLY_CONTENT
+			 , 	REPLY_NO
+			 , 	${noColumnName}
+			 ,	REPLY_REG_DATE
+		  FROM  ${replyTable}
+		 WHERE  REPLY_NO = #{replyNo}
+		   
+	</select>
+	
+</mapper>

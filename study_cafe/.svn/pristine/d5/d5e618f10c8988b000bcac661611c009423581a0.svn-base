@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.order.dao.ProductMapper">
+
+	<sql id="search_egov">
+		<if test="searchKeyword != null and searchKeyword != '' and searchKeyword != '전체'">
+			AND B.LPROD_NAME like '%'||#{searchKeyword}||'%'
+		</if>
+		<if test="searchCondition != 'pyn'.toString()">
+			<choose>
+				<when test="searchCondition == 'py'.toString()">
+					AND A.PRODUCT_USEABLE = '판매중'		
+				</when>
+				<when test="searchCondition == 'pn'.toString()">
+					AND A.PRODUCT_USEABLE = '판매불가'			
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="selectSearchProductList" resultType="kr.co.scm.order.vo.ProductVO">
+		SELECT  PRODUCT_CODE
+		     ,  PRODUCT_NAME
+		     ,  PRODUCT_PRICE
+		     ,  PRODUCT_QUANTITY
+		     ,  LPROD_CODE
+		     ,  PRODUCT_USEABLE
+		     ,  PRODUCT_MEMO
+		  FROM  TB_PRODUCT
+		 WHERE  1=1
+		 <if test="searchType != ''">
+		   AND  LPROD_CODE = #{searchType}
+		 </if>
+	 	<if test="keyword != ''">
+		   AND  PRODUCT_NAME LIKE '%'||#{keyword}||'%'
+	 	</if> 
+	</select>
+
+	<select id="selectLProdList" resultType="lprod">
+		SELECT  LPROD_CODE
+		     ,  LPROD_NAME
+		     ,  LPROD_ID 
+		  FROM  TB_LPROD
+	</select>
+	
+	<select id="selectLprodCodeByprodCode" resultType="str">
+		SELECT  LPROD_CODE
+		  FROM  TB_PRODUCT
+		 WHERE  PRODUCT_CODE = #{productCode}
+	</select>
+
+	
+	<select id="selectProductPagingList" resultType="kr.co.scm.order.vo.ProductVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  A.PRODUCT_CODE
+		     ,  A.PRODUCT_NAME
+		     ,  A.PRODUCT_PRICE
+		     ,  A.PRODUCT_QUANTITY
+		     ,  A.PRODUCT_USEABLE
+		     ,  B.LPROD_NAME
+		  FROM  TB_PRODUCT A, TB_LPROD B
+		 WHERE  A.LPROD_CODE = B.LPROD_CODE
+		<include refid="search_egov" />
+		 ORDER  BY A.PRODUCT_USEABLE DESC
+		     ,     A.PRODUCT_QUANTITY ASC
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>	
+	</select>
+	
+	<select id="selectProductPagingListCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_PRODUCT A, TB_LPROD B
+		 WHERE  A.LPROD_CODE = B.LPROD_CODE 			  	
+		<include refid="search_egov" />		
+	</select>
+	
+	<select id="selectProdEquipByProdCode" resultType="kr.co.scm.order.vo.ProdEquipVO">
+		SELECT  A.LPROD_CODE
+		     ,  B.LPROD_NAME
+		     ,  A.PRODUCT_CODE
+		     ,  A.PRODUCT_NAME
+		     ,  A.PRODUCT_PRICE
+		     ,  A.PRODUCT_QUANTITY
+		     ,  A.LPROD_CODE
+		     ,  A.PRODUCT_USEABLE
+		     ,  NVL(A.PRODUCT_MEMO,'없음') AS PRODUCT_MEMO
+		     ,  C.PRODUCT_EQUIP_RENT_PRICE
+		     ,  C.PRODUCT_EQUIP_MANUFACTURE
+		  FROM  TB_PRODUCT A ,TB_LPROD B ,TB_PRODUCT_EQUIP C
+		 WHERE  A.LPROD_CODE 	= B.LPROD_CODE
+		   AND  A.PRODUCT_CODE 	= C.PRODUCT_CODE
+		   AND  A.PRODUCT_CODE 	= #{productCode}
+	</select>
+	
+	<select id="selectProdByProdCode" resultType="kr.co.scm.order.vo.ProdEquipVO">
+		SELECT  A.PRODUCT_CODE
+		     ,  A.PRODUCT_NAME
+		     ,  A.PRODUCT_PRICE
+		     ,  A.PRODUCT_QUANTITY
+		     ,  A.LPROD_CODE
+		     ,  A.PRODUCT_USEABLE
+		     ,  NVL(A.PRODUCT_MEMO,'없음') AS PRODUCT_MEMO
+		     ,  B.LPROD_NAME
+		  FROM  TB_PRODUCT A ,TB_LPROD B
+		 WHERE  A.LPROD_CODE 	= B.LPROD_CODE
+		   AND  A.PRODUCT_CODE 	= #{productCode}
+	</select>
+	
+	
+	<update id="updateProductCnt">
+		UPDATE  TB_PRODUCT
+		   SET  PRODUCT_QUANTITY = PRODUCT_QUANTITY - #{orderProductQuantity}
+	 	 WHERE  PRODUCT_CODE = #{productCode}
+	</update>
+
+
+	<select id="selectOrderProductList" resultType="product">
+		SELECT  A.ORDER_PRODUCT_NO
+		     ,  A.ORDER_PRODUCT_QUANTITY
+		     ,  A.PRODUCT_CODE
+		     ,  B.PRODUCT_NAME
+		     ,  B.PRODUCT_PRICE
+		     ,  B.PRODUCT_QUANTITY
+		     ,  B.LPROD_CODE
+		     ,  B.PRODUCT_USEABLE
+		     ,  C.LPROD_NAME
+		  FROM  TB_CART A, TB_PRODUCT B, TB_LPROD C
+		 WHERE  B.PRODUCT_CODE		= A.PRODUCT_CODE
+		   AND  C.LPROD_CODE 		= B.LPROD_CODE
+		   AND  ORDER_PRODUCT_NO 	=  #{orderProductNo}
+	
+	</select>
+	
+	<select id="selectOrderAllProductList" resultType="prodEquip">
+		SELECT  ALL_LIST.*
+	         ,  A.ORDER_PRODUCT_NO
+       		 ,  A.ORDER_PRODUCT_QUANTITY
+		  FROM  (
+		  		SELECT  PRODUCT_LIST.*
+		  		     ,  D.PRODUCT_EQUIP_RENT_PRICE
+		         	 ,  D.PRODUCT_EQUIP_MANUFACTURE
+			  	  FROM  (
+				 	    SELECT  C.LPROD_CODE
+					         ,  C.LPROD_NAME
+					         ,  B.PRODUCT_CODE
+					         ,  B.PRODUCT_NAME
+					         ,  B.PRODUCT_PRICE
+					         ,  B.PRODUCT_QUANTITY
+					         ,  B.PRODUCT_USEABLE
+					      FROM  TB_PRODUCT B, TB_LPROD C
+					     WHERE  C.LPROD_CODE = B.LPROD_CODE
+			    		) PRODUCT_LIST
+			   	  LEFT  JOIN TB_PRODUCT_EQUIP D
+			        ON  PRODUCT_LIST.PRODUCT_CODE = D.PRODUCT_CODE
+			    ) ALL_LIST
+		 INNER  JOIN TB_CART A
+		    ON  A.PRODUCT_CODE		= ALL_LIST.PRODUCT_CODE
+		 WHERE  A.ORDER_PRODUCT_NO 	= #{orderProductNo}
+	</select>
+	
+	
+	
+	
+	
+	<insert id="insertProduct">
+		<selectKey keyProperty="productCode" resultType="str" order="BEFORE">
+			SELECT 'PDC'||PRODUCT_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_PRODUCT 
+		     (  PRODUCT_CODE
+	         ,  PRODUCT_NAME
+	         ,  PRODUCT_PRICE
+	         ,  PRODUCT_QUANTITY
+	         ,  LPROD_CODE
+	         ,  PRODUCT_USEABLE
+	         ,  PRODUCT_MEMO
+			 )    
+		VALUES  
+		  	 (  #{productCode}
+	         ,  #{productName}
+	         ,  #{productPrice}
+	         ,  #{productQuantity}
+	         ,  #{lprodCode}
+	         ,  #{productUseable}
+	         ,  #{productMemo}
+			 )
+	</insert>	
+	
+	<insert id="insertProductEquip">
+		INSERT 
+		  INTO  TB_PRODUCT_EQUIP 
+		     (  PRODUCT_EQUIP_RENT_PRICE
+		     ,  PRODUCT_EQUIP_MANUFACTURE
+		     ,  PRODUCT_CODE
+		     )  
+		VALUES  
+		     (  #{productEquipRentPrice}
+		     ,  #{productEquipManufacture}
+		     ,  #{productCode}
+			 )  
+	</insert>
+
+	<update id="updateProduct">
+		UPDATE  TB_PRODUCT
+		   SET  PRODUCT_NAME 		= #{productName}
+		     ,  PRODUCT_PRICE		= #{productPrice}
+		     ,  PRODUCT_QUANTITY 	= #{productQuantity}
+		     ,  PRODUCT_USEABLE	 	= #{productUseable}
+		     ,  PRODUCT_MEMO 		= #{productMemo}
+		 WHERE  PRODUCT_CODE 		= #{productCode}
+	</update>
+	
+	<update id="updateProductEquip">
+		UPDATE  TB_PRODUCT_EQUIP
+		   SET  PRODUCT_EQUIP_RENT_PRICE 	= #{productEquipRentPrice}
+		     ,  PRODUCT_EQUIP_MANUFACTURE	= #{productEquipManufacture}
+		 WHERE  PRODUCT_CODE 				= #{productCode}
+	</update>
+
+
+	<select id="selectLprodCnt" resultType="kr.co.scm.order.vo.LProdVO">
+		SELECT  A.LPROD_CODE AS LPROD_CODE
+		     ,  A.LPROD_NAME AS LPROD_NAME
+		     ,  NVL(COUNT(B.LPROD_CODE),0) AS LPROD_CNT
+		  FROM  TB_LPROD A
+		  LEFT  OUTER JOIN TB_PRODUCT B ON(A.LPROD_CODE=B.LPROD_CODE)
+		 GROUP  BY A.LPROD_CODE, A.LPROD_NAME
+		 ORDER  BY 1
+	</select>
+	<select id="selectProdAllCnt" resultType="int">
+         SELECT count(*)
+           FROM TB_PRODUCT	
+	</select>
+	
+	<select id="getProductByCartItem" resultType="product">
+		SELECT  A.PRODUCT_CODE
+		     ,  A.PRODUCT_NAME
+		     ,  A.PRODUCT_PRICE
+		     ,  A.PRODUCT_QUANTITY
+		     ,  A.PRODUCT_USEABLE
+		     ,  B.LPROD_NAME
+		  FROM  TB_PRODUCT A, TB_LPROD B
+		 WHERE  A.LPROD_CODE = B.LPROD_CODE
+		   AND  A.PRODUCT_CODE = #{productCode}
+	</select>
+
+	<select id="selectLprodCntByStore" resultType="kr.co.scm.order.vo.LProdVO">
+		SELECT  A.LPROD_CODE AS LPROD_CODE
+		     ,  A.LPROD_NAME AS LPROD_NAME
+		     ,  NVL(COUNT(B.LPROD_CODE),0) AS LPROD_CNT
+		  FROM  TB_LPROD A
+		  LEFT  OUTER JOIN (
+                            SELECT  D.* 
+                              FROM  TB_STORE_STOCK C, TB_PRODUCT D 
+                             WHERE  C.PRODUCT_CODE = D.PRODUCT_CODE
+                               AND  C.STORE_CODE = #{storeCode}
+                             )  
+                B ON(A.LPROD_CODE=B.LPROD_CODE)
+		 GROUP  BY A.LPROD_CODE, A.LPROD_NAME
+	</select>
+
+	
+</mapper>

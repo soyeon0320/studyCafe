@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.store.dao.UseageMapper">
+	
+	<select id="equipList" resultType="kr.co.scm.store.vo.EquipVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (	
+		SELECT  EQUIP_CODE
+   			 ,  EQUIP_NAME
+   			 ,  EQUIP_MANUFACTURE
+   			 ,  STORE_CODE
+   			 ,  EQUIP_USEABLE
+   			 ,  EQUIP_RENT_PRICE
+		  FROM  TB_EQUIP
+		  <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>           
+	</select>
+	
+	<select id="equipListCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_EQUIP
+	</select>
+	
+	<update id="modifyEquipUseable">
+		UPDATE  TB_EQUIP
+    	   SET  EQUIP_USEABLE 	 = #{equipUseable}
+         WHERE  EQUIP_CODE = #{equipCode}
+	</update>
+	
+	<select id="currentEquipList" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  A.*         
+   		  	 ,  NVL(EQUIP_USE.EQUIP_OCCUFIED,0) AS EQUIP_OCCUFIED
+             ,  EQUIP_USE.EQUIP_RENT_IN AS EQUIP_RENT_IN
+             ,  EQUIP_USE.EQUIP_RENT_OUT AS EQUIP_RENT_OUT
+             ,  EQUIP_USE.EQUIP_RENT_END AS EQUIP_RENT_END
+             ,  EQUIP_USE.OVER_RENT_TIME AS OVER_RENT_TIME
+		  FROM  TB_EQUIP A
+    	     LEFT JOIN  (
+                        SELECT  B.EQUIP_CODE
+                             ,  B.EQUIP_RENT_IN
+                             ,  B.EQUIP_RENT_OUT
+                             ,  B.EQUIP_RENT_END
+                             ,  NVL(TO_NUMBER(CEIL((B.EQUIP_RENT_OUT - B.EQUIP_RENT_IN) * 60 * 24)), 0) AS OVER_RENT_TIME
+                             ,  CASE WHEN B.EQUIP_RENT_IN &lt; SYSDATE AND NVL(B.EQUIP_RENT_END,SYSDATE+1) &gt; SYSDATE
+                                     THEN 1
+                                ELSE 0
+                                END AS EQUIP_OCCUFIED                                   
+        				  FROM  TB_RENT_EQUIP B, TB_MEMBER C
+        				 WHERE  B.MEM_ID  =  C.MEM_ID  
+                           AND  (EQUIP_CODE, EQUIP_RENT_OUT) IN (
+                            	SELECT EQUIP_CODE, NVL(MAX(EQUIP_RENT_OUT),SYSDATE) AS EQUIP_RENT_OUT FROM TB_RENT_EQUIP
+                            	GROUP BY EQUIP_CODE
+                            	)
+                            	ORDER BY EQUIP_RENT_OUT
+    						 )  EQUIP_USE
+                ON A.EQUIP_CODE = EQUIP_USE.EQUIP_CODE    
+                WHERE  STORE_CODE  =  #{storeCode}
+	</select>
+	
+	<select id="kioskRentTabletList" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+        SELECT  A.*
+   		  	 ,  NVL(EQUIP_USE.EQUIP_OCCUFIED,0) AS EQUIP_OCCUFIED
+		  FROM  TB_EQUIP A
+    	     LEFT JOIN  (
+                        SELECT  B.EQUIP_CODE
+                             ,  CASE WHEN B.EQUIP_RENT_IN &lt; SYSDATE AND NVL(B.EQUIP_RENT_END,SYSDATE+1) &gt; SYSDATE
+                                     THEN 1
+                                ELSE 0
+                                END AS EQUIP_OCCUFIED                                   
+        				  FROM  TB_RENT_EQUIP B, TB_MEMBER C
+        				 WHERE  B.MEM_ID  =  C.MEM_ID
+        				   AND  (EQUIP_CODE, EQUIP_RENT_OUT) IN (
+                            	SELECT EQUIP_CODE, NVL(MAX(EQUIP_RENT_OUT),SYSDATE) AS EQUIP_RENT_OUT FROM TB_RENT_EQUIP
+                            	GROUP BY EQUIP_CODE
+                            	)
+                            	ORDER BY EQUIP_RENT_OUT	      
+    						 )  EQUIP_USE
+                ON A.EQUIP_CODE = EQUIP_USE.EQUIP_CODE    
+         WHERE  STORE_CODE  =  #{storeCode}
+           AND  LPROD_CODE  =  'P102'
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]> 
+	</select>
+	
+	<select id="noteBookList" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  EQUIP_LIST.*
+   		  	 ,  NVL(EQUIP_USE.EQUIP_OCCUFIED,0) AS EQUIP_OCCUFIED
+   		  	 ,  EQUIP_USE.MEM_NAME
+   		  	 ,  EQUIP_USE.EQUIP_TOTAL_PRICE
+   		  	 ,  EQUIP_USE.EQUIP_RENT_IN
+             ,  EQUIP_USE.EQUIP_RENT_OUT
+		  FROM  (
+        		SELECT  EQUIP_CODE
+           			 ,  STORE_CODE
+           			 ,  EQUIP_NAME
+           			 ,  EQUIP_MANUFACTURE
+           			 ,  EQUIP_RENT_PRICE
+           			 ,  EQUIP_USEABLE
+        		  FROM  TB_EQUIP
+        		 WHERE  STORE_CODE  =  #{storeCode}
+        		   AND  LPROD_CODE  =  'P101'
+                 ORDER  BY EQUIP_CODE
+    			     )  EQUIP_LIST
+    	     LEFT JOIN  (
+        				SELECT  COUNT(*) AS EQUIP_OCCUFIED
+           					 ,  A.RENT_EQUIP_NO
+           					 ,  B.MEM_NAME
+           					 ,  A.EQUIP_TOTAL_PRICE
+           					 ,	A.EQUIP_RENT_IN
+                             ,  A.EQUIP_CODE
+                             ,  A.EQUIP_RENT_OUT
+        				  FROM  TB_RENT_EQUIP A, TB_MEMBER B
+        				 WHERE  A.MEM_ID  =  B.MEM_ID	
+        				   AND	SYSDATE &gt; A.EQUIP_RENT_IN
+            			   AND  SYSDATE &lt;= NVL(A.EQUIP_RENT_OUT,SYSDATE)
+				         GROUP  BY A.RENT_EQUIP_NO, B.MEM_NAME, A.EQUIP_TOTAL_PRICE, A.EQUIP_RENT_IN,  A.EQUIP_CODE, A.EQUIP_RENT_OUT
+    						 )  EQUIP_USE ON EQUIP_LIST.EQUIP_CODE = EQUIP_USE.EQUIP_CODE
+	</select>
+	
+	<select id="detailEquipList" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  A.EQUIP_CODE
+        	 ,  B.MEM_ID
+        	 ,  A.EQUIP_USEABLE
+        	 ,  B.EQUIP_RENT_IN
+        	 ,  B.EQUIP_RENT_OUT
+             ,  C.MEM_NAME
+    	  FROM  TB_EQUIP A, TB_RENT_EQUIP B, TB_MEMBER C
+    	 WHERE  A.EQUIP_CODE = B.EQUIP_CODE
+           AND  B.MEM_ID = C.MEM_ID
+    	   AND  A.EQUIP_CODE = #{equipCode}
+	</select>
+		
+	<select id="currentEquipOccufied" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  EQUIP_LIST.*
+   		  	 ,  NVL(EQUIP_USE.EQUIP_OCCUFIED,0) AS EQUIP_OCCUFIED
+   		  	 ,  EQUIP_USE.MEM_NAME
+   		  	 ,  EQUIP_USE.EQUIP_TOTAL_PRICE
+   		  	 ,  EQUIP_USE.EQUIP_RENT_IN
+             ,  EQUIP_USE.EQUIP_RENT_OUT
+		  FROM  (
+        		SELECT  EQUIP_CODE
+           			 ,  STORE_CODE
+           			 ,  EQUIP_NAME
+           			 ,  EQUIP_MANUFACTURE
+        		  FROM  TB_EQUIP
+        		 WHERE  STORE_CODE = #{storeCode}
+            	   AND  EQUIP_CODE = #{equipCode}
+                 ORDER  BY EQUIP_CODE
+    			     )  EQUIP_LIST
+    	     LEFT JOIN  (
+        				SELECT  COUNT(*) AS EQUIP_OCCUFIED
+           					 ,  A.RENT_EQUIP_NO
+           					 ,  B.MEM_NAME
+           					 ,  A.EQUIP_TOTAL_PRICE
+           					 ,	A.EQUIP_RENT_IN
+                             ,  A.EQUIP_CODE
+                             ,  A.EQUIP_RENT_OUT
+        				  FROM  TB_RENT_EQUIP A, TB_MEMBER B
+        				 WHERE  A.MEM_ID  =  B.MEM_ID	
+        				   AND	SYSDATE &gt; A.EQUIP_RENT_IN
+            			   AND  SYSDATE &lt;= NVL(A.EQUIP_RENT_OUT,SYSDATE)
+				         GROUP  BY A.RENT_EQUIP_NO, B.MEM_NAME, A.EQUIP_TOTAL_PRICE, A.EQUIP_RENT_IN,  A.EQUIP_CODE, A.EQUIP_RENT_OUT
+    						 )  EQUIP_USE ON EQUIP_LIST.EQUIP_CODE = EQUIP_USE.EQUIP_CODE
+	</select>
+	
+	<select id="currentSeatOccufied" resultType="kr.co.scm.store.vo.SeatVO">
+		SELECT  SEAT_LIST.* 
+         	 ,  NVL(SEAT_USE.SEAT_OCCUFIED,0) AS SEAT_OCCUFIED  
+      	  
+      	  FROM  (
+        		SELECT   SEAT_NO
+             	     ,   STORE_CODE
+             		 ,   SEAT_USEABLE
+             		 ,   SEAT_INFO
+             		 ,   SEAT_LOCATION
+             		 ,   SEAT_DIRECTION
+          		  FROM   TB_SEAT
+        		 WHERE   STORE_CODE 	 =  #{storeCode}	
+           		   AND   SEAT_LOCATION 	!=  0
+         		 ORDER   BY SEAT_LOCATION
+             	     )   SEAT_LIST
+     		 LEFT JOIN   (
+        	     		 SELECT   COUNT(*) AS SEAT_OCCUFIED
+             			      ,   A.SEAT_NO
+          				   FROM   TB_RENT_SEAT A
+         				  WHERE   SYSDATE  &lt;= NVL(A.SEAT_OUT,SYSDATE)
+         				    AND   STORE_CODE 	 =  #{storeCode}
+<!--          				    AND   SEAT_IN IS NOT NULL -->
+         				  GROUP   BY A.SEAT_NO
+            				  )   SEAT_USE
+     						 ON   SEAT_LIST.SEAT_NO  =  SEAT_USE.SEAT_NO
+	</select>
+	
+	<select id="detailSeatList" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		SELECT  SEAT_NO
+        	 ,  MEM_ID	   
+        	 ,  SEAT_IN
+        	 ,  SEAT_OUT
+    	  FROM  TB_RENT_SEAT 
+    	 WHERE  SEAT_NO IS NOT NULL
+    	   AND  SEAT_NO = #{seatNo}
+    	   AND  STORE_CODE = #{storeCode}
+    	 ORDER  BY SEAT_IN DESC     
+    	   <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]> 
+	</select>
+	
+	<select id="seatPagingList" resultType="int">
+		 SELECT  COUNT(SEAT_NO) TOTALCOUNT
+		   FROM  TB_RENT_SEAT 
+		  WHERE  SEAT_NO IS NOT NULL
+			AND  SEAT_NO  =  #{seatNo}
+            AND  STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="currentDetailSeat" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  SEAT_LIST.*
+   		  	 ,  NVL(SEAT_USE.SEAT_OCCUFIED,0) AS SEAT_OCCUFIED
+   		  	 ,  SEAT_USE.MEM_NAME AS MEM_NAME
+   		  	 ,  SEAT_USE.SEAT_TOTALTIME
+   		  	 ,  SEAT_USE.SEAT_IN
+		  FROM  (
+        		SELECT  SEAT_NO
+           			 ,  STORE_CODE
+           			 ,  SEAT_USEABLE
+           			 ,  SEAT_INFO
+           			 ,  SEAT_LOCATION
+           			 ,  SEAT_DIRECTION
+        		  FROM  TB_SEAT
+        		 WHERE  STORE_CODE = #{storeCode}
+            	   AND  SEAT_LOCATION != 0
+            	   AND  SEAT_NO = #{seatNo}
+                 ORDER  BY SEAT_LOCATION
+    			     )  SEAT_LIST
+    	     LEFT JOIN  (
+        				SELECT  COUNT(*) AS SEAT_OCCUFIED
+           					 ,  A.SEAT_NO
+           					 ,  B.MEM_NAME
+           					 ,  A.SEAT_TOTALTIME
+           					 ,	A.SEAT_IN
+        				  FROM  TB_RENT_SEAT A, TB_MEMBER B
+        				 WHERE  A.MEM_ID  =  B.MEM_ID	
+        				   AND	SYSDATE &gt; A.SEAT_IN
+            			   AND  SYSDATE &lt;= NVL(A.SEAT_OUT,SYSDATE)
+				         GROUP  BY A.SEAT_NO, B.MEM_NAME, A.SEAT_TOTALTIME, A.SEAT_IN
+    						 )  SEAT_USE ON SEAT_LIST.SEAT_NO = SEAT_USE.SEAT_NO 
+	</select>
+	
+	
+	<select id="getTablet" resultType="kr.co.scm.store.vo.EquipVO">
+		SELECT  EQUIP_CODE
+   			 ,  EQUIP_NAME
+   			 ,  EQUIP_MANUFACTURE
+   			 ,  STORE_CODE
+   			 ,  EQUIP_USEABLE
+   			 ,  EQUIP_RENT_PRICE
+   			 ,	LPROD_CODE
+		  FROM  TB_EQUIP
+ 	     WHERE  EQUIP_CODE = #{equipCode}
+	</select>
+	
+	<update id="tbRentPay">
+		<selectKey order="BEFORE" resultType="int" keyProperty="rentEquipNo">
+			SELECT RENT_EQUIP_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  TB_RENT_EQUIP 
+		     (  RENT_EQUIP_NO
+		     ,  EQUIP_RENT_IN
+		     ,  MEM_ID
+		     ,  EQUIP_CODE
+		     ,  EQUIP_RENT_OUT
+		     ,  EQUIP_TOTAL_PRICE
+			 ) 
+	    VALUES 
+	    	 (  #{rentEquipNo}
+		     ,  SYSDATE
+		     ,  #{memId}
+		     ,  #{equipCode}
+		     ,  SYSDATE + #{rentOut}/24
+		   	 ,  #{equipTotalPrice}
+		)
+	</update>
+</mapper>
+
+
+
+

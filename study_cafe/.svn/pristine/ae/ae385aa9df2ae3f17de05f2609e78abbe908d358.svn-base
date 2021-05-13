@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.common.dao.AttachMapper">
+	
+	<select id="selectFile" resultType="kr.co.scm.board.vo.AttachVO">
+		SELECT  ATTACH_NO
+		     ,  ATTACH_NAME
+		     ,  ATTACH_ORIGIN_NAME
+		     ,  ATTACH_COURS
+		     ,  ATTACH_EXTSN
+		     ,  ATTACH_REG_DATE
+		     ,  ATTACH_COUNT
+		  FROM  TB_ATTACH
+		 WHERE  ATTACH_NO = #{attachNo}
+		 <if test="attachList != null">
+		   AND  ATTACH_COUNT IN
+		 	<foreach collection="attachList" item="attach" open="(" separator="," close=")">
+		 		#{attach.attachCount}
+		 	</foreach>
+		 </if>
+		 	
+	</select>
+	
+	<select id="selectFileByAttachVO" resultType="kr.co.scm.board.vo.AttachVO">
+		SELECT  ATTACH_NO
+		     ,  ATTACH_NAME
+		     ,  ATTACH_ORIGIN_NAME
+		     ,  ATTACH_COURS
+		     ,  ATTACH_EXTSN
+		     ,  ATTACH_REG_DATE
+		     ,  ATTACH_COUNT
+		  FROM  TB_ATTACH
+		 WHERE  ATTACH_NO	 = #{attachNo}
+		   AND  ATTACH_COUNT = #{attachCount}
+	</select>
+	
+	<select id="selectFileList" resultType="kr.co.scm.board.vo.AttachVO">
+		SELECT  ATTACH_NO
+		     ,  ATTACH_NAME
+		     ,  ATTACH_ORIGIN_NAME
+		     ,  ATTACH_COURS
+		     ,  ATTACH_EXTSN
+		     ,  ATTACH_REG_DATE
+		     ,  ATTACH_COUNT
+		  FROM  TB_ATTACH
+		 WHERE  ATTACH_NO = #{attachNo}
+	</select>
+	
+	<insert id="insertAttach">
+		<selectKey order="BEFORE" resultType="int" keyProperty="attachCount">
+			SELECT NVL(MAX(ATTACH_COUNT)+1 ,1) 
+			  FROM TB_ATTACH
+			 WHERE ATTACH_NO = #{attachNo}
+		</selectKey>
+		
+		INSERT 
+		  INTO  TB_ATTACH 
+		  	 (  ATTACH_NO
+			 ,  ATTACH_NAME
+			 ,  ATTACH_ORIGIN_NAME
+			 ,  ATTACH_COURS
+			 ,  ATTACH_EXTSN
+			 ,  ATTACH_REG_DATE
+			 ,  ATTACH_COUNT
+			 ) 
+		VALUES 
+			 (  #{attachNo}
+			 ,  #{attachName}
+			 ,  #{attachOriginName}
+			 ,  #{attachCours}
+			 ,  #{attachExtsn}
+			 ,  #{attachRegDate}
+			 ,  #{attachCount}
+			 )
+	</insert>
+	
+	<select id="selectAttachSeq" resultType="int">
+		SELECT ATTACH_SEQ.NEXTVAL FROM DUAL
+	</select>
+	
+	<update id="deleteFiles">
+		DELETE 
+		  FROM  TB_ATTACH
+		 WHERE  ATTACH_NO = #{attachNo}
+	</update>
+	<update id="deleteFileByAttachCount">
+		DELETE 
+		  FROM  TB_ATTACH
+		 WHERE  ATTACH_NO 	 = #{attachNo}
+		   AND  ATTACH_COUNT = #{attachCount}
+	</update>
+</mapper>
+
+
+
+

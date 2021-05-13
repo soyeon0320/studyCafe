@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.user.dao.ScrapMapper">
+
+	<select id="selectStoreScrapCount" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_STORE_BOOKMARK A
+		 INNER  JOIN TB_MEMBER B ON A.MEM_ID = B.MEM_ID 
+		 INNER  JOIN TB_STORE C ON A.STORE_CODE = C.STORE_CODE
+		 WHERE  B.MEM_ID = #{memId}
+		   AND  C.STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="selectStoreScrapTotalCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_STORE_BOOKMARK   
+		 WHERE  STORE_CODE = #{storeCode}
+	</select>
+
+	<update id="insertStoreScrap">
+		INSERT 
+		  INTO  TB_STORE_BOOKMARK
+			 (  MEM_ID
+			 ,  STORE_CODE
+			 ,  REG_DATE
+			 )
+		VALUES
+			 (
+				#{memId}
+			 ,  #{storeCode}
+			 ,  SYSDATE
+			 )
+	</update>
+	
+	<delete id="removeStoreScrap">
+		DELETE  FROM TB_STORE_BOOKMARK
+ 		 WHERE  STORE_CODE = #{storeCode}
+ 		   AND  MEM_ID = #{memId}
+	</delete>
+	
+	<delete id="removeMyPageStoreScrap">
+		DELETE  FROM  TB_STORE_BOOKMARK
+		 WHERE  MEM_ID = #{memId}
+		   AND  STORE_CODE IN 
+		 	<foreach collection="storeCode" item="store" open="(" separator="," close=")">
+		 		#{store}
+		 	</foreach>
+	</delete>
+	
+	<delete id="removeMyPageFreeScrap">
+		DELETE  FROM  TB_FREE_SCRAP
+		 WHERE  MEM_ID = #{memId}
+		   AND  FREE_NO IN 
+		 	<foreach collection="freeNo" item="freeNo" open="(" separator="," close=")">
+		 		#{freeNo}
+		 	</foreach>
+	</delete>
+	
+	<delete id="removeMyPageInfoScrap">
+		DELETE  FROM  TB_INFO_SCRAP
+		 WHERE  MEM_ID = #{memId}
+		   AND  INFO_NO IN 
+		 	<foreach collection="infoNo" item="infoNo" open="(" separator="," close=")">
+		 		#{infoNo}
+		 	</foreach>
+	</delete>
+	
+	<delete id="removeMyPageStudygroupScrap">
+		DELETE  FROM  TB_STUDYGROUP_SCRAP
+		 WHERE  MEM_ID = #{memId}
+		   AND  STUDYGROUP_NO IN 
+		 	<foreach collection="studygroupNo" item="studygroupNo" open="(" separator="," close=")">
+		 		#{studygroupNo}
+		 	</foreach>
+	</delete>
+	
+</mapper>

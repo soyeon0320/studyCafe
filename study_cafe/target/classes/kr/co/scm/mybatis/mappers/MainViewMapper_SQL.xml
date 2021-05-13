@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.store.dao.MainViewMapper">
+
+	<select id="getVocStatic" resultType="java.util.HashMap">
+		SELECT  FN_GETCODENM(A.VOC_KIND) AS VOC_KIND
+             ,  NVL(B.VOC_KIND_CNT,0) AS VOC_KIND_CNT
+      	  FROM  (
+      	  			SELECT  VOC_KIND
+        			  FROM  TB_VOC
+        			 GROUP  BY VOC_KIND
+        		) A
+		  LEFT  JOIN  (
+		  				SELECT  COUNT(VOC_KIND) AS VOC_KIND_CNT
+	      					 ,  VOC_KIND
+					 	  FROM  TB_VOC
+					     WHERE  STORE_CODE = #{storeCode}
+	  					 GROUP  BY VOC_KIND
+	  				  ) B
+            ON  A.VOC_KIND = B.VOC_KIND
+         ORDER  BY VOC_KIND_CNT DESC
+	</select>
+	
+	<select id="getWeeklySummary" resultType="kr.co.scm.store.vo.SummaryVO">
+		SELECT  DAY
+              ,  FN_DAY_ROOM_USING_CNT(WEEK.DAY,#{storeCode}) + FN_DAY_SEAT_USING_CNT(WEEK.DAY,#{storeCode}) AS USING_CNT
+              ,  FN_DAY_EQUIP_USING_CNT(WEEK.DAY,#{storeCode})  AS EQUIP_USE_CNT
+              ,  FN_DAY_VOC_CNT(WEEK.DAY,#{storeCode}) AS VOC_CNT
+              ,  FN_DAY_REVIEW_CNT(WEEK.DAY,#{storeCode}) AS REVIEW_CNT
+              ,  FN_DAY_SALE(WEEK.DAY,#{storeCode}) AS SALES
+          FROM  
+           		<![CDATA[
+                ( 
+		         SELECT  TO_DATE(TO_CHAR(SYSDATE - LEVEL+1,'yyyy/MM/dd')) AS DAY
+		           FROM  DUAL
+		        CONNECT  BY LEVEL <= 7
+		        ) WEEK
+		        ]]>
+	</select>
+	
+	
+	<select id="getAdminMainHeader" resultType="kr.co.scm.admin.vo.AdminHeaderVO">
+			SELECT  (
+						SELECT  COUNT(*)
+						  FROM  TB_CONTRACT_AGREEMENT
+						  WHERE CONTRACT_STATUS = 'CS02'
+					)  AS CONTRACT_CNT  
+				 ,  (
+						SELECT  COUNT(*)
+						  FROM  TB_ORDER_PRODUCT	
+						  WHERE ORDER_PRODUCT_STATUS = 'OS01'
+				 	) AS ORDER_CNT
+				 	
+				 ,  (
+						SELECT  COUNT(*)
+						  FROM  TB_VOC	
+						 WHERE  VOC_STATUS = 'N'
+				 	) AS VOC_CNT
+				 	
+				 ,  (
+						SELECT  COUNT(*)
+						  FROM  TB_MEMBER	
+						 WHERE  MEM_REG_DATE > SYSDATE-30
+				 	) AS MEMBER_CNT
+			  FROM  DUAL
+	</select>
+	
+	
+	<select id="selectLowRemainList" resultType="kr.co.scm.order.vo.ProductVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  A.PRODUCT_CODE
+             ,  A.PRODUCT_NAME
+             ,  A.PRODUCT_QUANTITY
+             ,  A.PRODUCT_MEMO
+             ,  B.LPROD_NAME
+		  FROM  TB_PRODUCT A, TB_LPROD B
+         WHERE  A.PRODUCT_USEABLE = '판매중'
+           AND  A.LPROD_CODE = B.LPROD_CODE 
+         ORDER  BY A.PRODUCT_QUANTITY
+		 
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > 0
+			    ) D3
+		 WHERE  ROWNUM <= 8
+		   ]]>
+	</select>
+	
+	<select id="selectRegionStatic" resultType="kr.co.scm.common.vo.StaticVO">
+		SELECT LABEL AS REGION
+		     , ROUND(FN_USE_CNT_REGION_MONTH(REGION.LABEL)/FN_USE_TOTAL_MONTH(SYSDATE) * 100) AS USE_PER 
+		
+		  FROM  (
+		            SELECT LABEL
+		              FROM TB_STORE_ADDR
+		             GROUP BY LABEL
+		         ) REGION
+	</select>
+	
+	<select id="selectVocStatic" resultType="kr.co.scm.common.vo.StaticVO">
+      SELECT  TO_DATE(WEEK.DAY) AS DAY
+           ,  (SELECT COUNT(VOC_NO)
+                FROM TB_VOC
+                WHERE VOC_KIND = 'P01'
+                AND TO_CHAR(VOC_REG_DATE,'yyyy/MM/dd') LIKE WEEK.DAY  
+                ) AS P01
+                
+            ,  (
+                SELECT COUNT(VOC_NO)
+                FROM TB_VOC
+                WHERE VOC_KIND = 'P02'
+                AND TO_CHAR(VOC_REG_DATE,'yyyy/MM/dd') LIKE WEEK.DAY  
+                ) AS P02
+                
+            ,  (
+                   SELECT COUNT(VOC_NO)
+                    FROM TB_VOC
+                    WHERE VOC_KIND = 'P03'
+                    AND TO_CHAR(VOC_REG_DATE,'yyyy/MM/dd') LIKE WEEK.DAY  
+                    
+                ) AS P03
+        FROM   ( 
+              	<![CDATA[
+		         SELECT  TO_CHAR(SYSDATE - LEVEL+1,'yyyy/MM/dd') AS DAY
+		           FROM  DUAL
+		        CONNECT  BY LEVEL <= 7
+		        ) WEEK
+		        ]]>
+	</select>
+	
+	<select id="selectTotalUseForYear" resultType="kr.co.scm.common.vo.StaticVO">
+	        SELECT TO_DATE(MONTH.USE_MONTH) AS MONTH
+                 , FN_USE_TOTAL_MONTH(MONTH.USE_MONTH) AS USE_CNT
+        
+          FROM  ( 
+          <![CDATA[
+		         SELECT  ADD_MONTHS(TO_DATE(TO_CHAR(SYSDATE,'yyyy/MM/dd')),-LEVEL+1) AS USE_MONTH
+		           FROM  DUAL
+		        CONNECT  BY LEVEL <= 12
+		        ) MONTH
+	     	]]>
+	     	ORDER BY MONTH
+	</select>
+	
+	<select id="seletRankingStoreList" resultType="kr.co.scm.store.vo.StoreVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  	
+	
+		SELECT * 
+		  FROM (
+		        SELECT A.STORE_NAME
+		              , FN_USE_TOTAL_MONTH_STORE(SYSDATE,A.STORE_CODE) AS USE_CNT
+		          FROM TB_STORE A
+		        )
+		ORDER BY USE_CNT DESC
+		
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > 0
+			    ) D3
+		 WHERE  ROWNUM <= 10
+		   ]]>
+	
+	</select>
+	
+</mapper>

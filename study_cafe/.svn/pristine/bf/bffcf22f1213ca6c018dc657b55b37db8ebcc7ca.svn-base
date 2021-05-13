@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.board.dao.VocMapper">
+	
+
+	<select id="selectVocList" resultType="voc">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		  
+		SELECT  VOC_TITLE
+			 ,  VOC_CONTENT
+			 ,  VOC_NO
+			 ,  VOC_REG_DATE
+			 ,  MEM_ID
+			 ,  STORE_CODE
+			 ,  VOC_KIND
+			 ,  VISIT_DATE
+			 ,  USE_SERVICE
+			 ,  CASE WHEN VOC_STATUS = 'N' THEN '대기중'
+             		 ELSE '답변완료'
+             	END AS VOC_STATUS
+		  FROM  TB_VOC
+		 WHERE  MEM_ID = #{memId}
+		 ORDER  BY VOC_NO DESC
+		 
+		 
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+   
+	</select>
+
+	<select id="selectSearchListCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_VOC
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	
+	<select id="selectVocByVocNo" resultType="voc">
+		SELECT  VOC_TITLE
+		     ,  VOC_CONTENT
+		     ,  VOC_NO
+		     ,  VOC_REG_DATE
+		     ,  MEM_ID
+		     ,  STORE_CODE
+		     ,  (
+		     	SELECT STORE_NAME
+		     	  FROM TB_STORE 
+		     	 WHERE TB_STORE.STORE_CODE = TB_VOC.STORE_CODE
+		     	)
+		     	AS STORE_NAME
+		     ,  VISIT_DATE
+		     ,  FN_GETCODENM(USE_SERVICE) AS USE_SERVICE
+		     ,  FN_GETCODENM(VOC_KIND) AS VOC_KIND
+             ,  CASE WHEN VOC_STATUS = 'N' THEN '대기중'
+             		 ELSE '답변완료'
+             	END AS VOC_STATUS
+		  FROM  TB_VOC
+		 WHERE  VOC_NO = #{vocNo}
+	</select>
+	
+	
+	<update id="insertVoc" parameterType="voc">
+	
+		<selectKey order="BEFORE" resultType="int" keyProperty="vocNo"> 
+			SELECT VOC_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  TB_VOC 
+		     (  VOC_TITLE
+			 ,  VOC_CONTENT
+			 ,  VOC_NO
+			 ,  VOC_REG_DATE
+			 ,  MEM_ID
+			 ,  STORE_CODE
+			 ,  VOC_KIND
+			 <if test="visitDate != null">
+			 ,  VISIT_DATE
+			 </if>
+			 ,  USE_SERVICE
+			 ,  VOC_STATUS
+			 )  
+		VALUES  
+			 (  #{vocTitle}
+			 ,  #{vocContent}
+			 ,  #{vocNo}
+			 ,  #{vocRegDate}
+			 ,  #{memId}
+			 ,  #{storeCode}
+			 ,  #{vocKind}
+			 <if test="visitDate != null">
+			 ,  #{visitDate}
+			 </if>
+			 ,  #{useService}
+			 ,  'N'
+			 )	
+	</update>
+	
+	<sql id="search_egov">
+		<if test="searchCondition != 'vyn'.toString()">
+			<choose>
+				<when test="searchCondition == 'vy'.toString()">
+					AND A.VOC_STATUS = 'Y'		
+				</when>
+				<when test="searchCondition == 'vn'.toString()">
+					AND A.VOC_STATUS = 'N'			
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="selectAllVocPagingList" resultType="voc">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT	A.VOC_TITLE
+		   	 ,	A.VOC_NO
+		     ,	A.VOC_REG_DATE
+		     ,	A.MEM_ID
+		     ,  FN_GETCODENM(A.USE_SERVICE) AS USE_SERVICE
+		     ,  FN_GETCODENM(A.VOC_KIND) AS VOC_KIND
+		     ,	A.VISIT_DATE
+		     ,	CASE WHEN A.VOC_STATUS = 'N' THEN '답변대기'
+             		 ELSE '답변완료'
+                     END AS VOC_STATUS
+		     ,	B.STORE_NAME
+		  FROM  TB_VOC A
+		   	 ,  TB_STORE B
+		 WHERE  A.STORE_CODE = B.STORE_CODE
+		 <include refid="search_egov" />
+		 ORDER  BY VOC_STATUS
+		 
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+   
+	</select>
+	<select id="selectAllVocPagingListCount" resultType="int">
+        SELECT	COUNT(*) totcnt
+	      FROM	TB_VOC A
+		   	 ,  TB_STORE B
+		 WHERE  A.STORE_CODE = B.STORE_CODE		  	
+		<include refid="search_egov" />		
+	</select>
+	
+	<select id="selectStatusCnt" resultType="voc">
+		SELECT	CASE WHEN A.VOC_STATUS = 'N' THEN '답변대기'
+             		 ELSE '답변완료'
+                     END AS VOC_STATUS
+             ,  COUNT(*) AS vocStatusCnt
+	      FROM	TB_VOC A
+		   	 ,  TB_STORE B
+		 WHERE  A.STORE_CODE = B.STORE_CODE
+         GROUP  BY A.VOC_STATUS
+	</select>
+	
+
+	
+</mapper>
+
+
+
+

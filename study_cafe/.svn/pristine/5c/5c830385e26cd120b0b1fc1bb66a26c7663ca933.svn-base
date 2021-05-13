@@ -1,0 +1,890 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.store.dao.StoreMapper">
+	
+	<sql id="search">
+		<if test="searchType == 't'.toString()">
+			and title like '%'||#{keyword}||'%'			
+		</if>
+		<if test="searchType == 'w'.toString()">
+			and writer like '%'||#{keyword}||'%'			
+		</if>
+		<if test="searchType == 'c'.toString()">
+			and content like '%'||#{keyword}||'%'			
+		</if>
+		<if test="searchType == 'tc'.toString()">
+			and (
+			title like '%'||#{keyword}||'%'
+			or
+			content like '%'||#{keyword}||'%'						
+			)			
+		</if>
+		<if test="searchType == 'cw'.toString()">
+			and (
+			writer like '%'||#{keyword}||'%'
+			or
+			content like '%'||#{keyword}||'%'						
+			)			
+		</if>
+		<if test="searchType == 'tcw'.toString()">
+			and (
+			title like '%'||#{keyword}||'%'
+			or
+			writer like '%'||#{keyword}||'%'
+			or
+			content like '%'||#{keyword}||'%'						
+			)			
+		</if>
+	</sql>
+	
+	<sql id="stock_search">
+		<if test="searchKeyword != null and  searchKeyword !=''">
+			AND C.LPROD_CODE = #{searchKeyword}
+		</if>	
+	
+	</sql>
+	
+	
+	
+	<sql id="storeSearch">
+		<if test="addrDonmCode != null and addrDonmCode != ''">
+		   AND  ADDR_DONM_CODE = #{addrDonmCode}
+		  <if test="addrSigugunCode != null and addrSigugunCode != ''">
+		   AND  ADDR_SIGUGUN_CODE = #{addrSigugunCode}
+		  </if>
+		  </if>
+		  <if test="storeName != null and storeName != ''">
+		     AND  STORE_NAME LIKE '%'|| #{storeName} || '%'
+		  </if>
+	</sql>
+	
+ 	<select id="getStore" resultType="kr.co.scm.store.vo.StoreVO"> 
+		SELECT  STORE_CODE
+		     ,  STORE_NAME
+		     ,  STORE_WIDTH
+		     ,  STORE_HEIGHT
+		     ,  USING_GUIDE
+		     ,  STORE_STATUS
+		     ,  ADDR_DONM_CODE
+		     ,  ADDR_SIGUGUN_CODE
+		     ,  STORE_TOTAL_SEAT
+		     ,  STORE_CONTRACT_STATUS
+		     ,  STORE_ADDR
+		     ,  STORE_MAP_X
+		     ,  STORE_MAP_Y
+		     ,  STORE_SEAT_MAP
+		     ,  STORE_PHONE
+		     ,  STORE_IMAGE_URL
+		     ,  STORE_CID
+		     ,  FN_GET_GRADE(STORE_CODE) AS STORE_GRADE
+		     ,  FN_GET_STORE_SCRAP_CNT(STORE_CODE) AS STORE_SCRAP_CNT
+      		 ,  (
+				 	SELECT  COUNT(*) 
+					  FROM  TB_RENT_STUDYROOM A , TB_STUDYROOM B
+					 WHERE  A.STUDYROOM_NO = B.STUDYROOM_NO
+					   AND  B.STORE_CODE = #{storeCode}
+					   AND  to_char(A.STUDYROOM_RESERV_DATE,'yyyy/MM/dd') like to_char(sysdate,'yyyy/MM/dd')
+			 	) AS NEW_RESERV
+		  FROM  TB_STORE
+	     WHERE  STORE_CODE = #{storeCode}
+	</select>
+
+	<insert id="insertRentalEquip">
+		<selectKey order="BEFORE" resultType="str" keyProperty="equipCode">
+			SELECT 'EP' || EQUIP_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_EQUIP 
+		     (  EQUIP_CODE
+		     ,  EQUIP_NAME
+		     ,  EQUIP_MANUFACTURE
+		     ,  STORE_CODE
+		     ,  EQUIP_USEABLE
+		     ,  EQUIP_RENT_PRICE
+		     ,  LPROD_CODE
+		     )  
+	    VALUES  
+	         (  #{equipCode}
+		     ,  #{productName}
+		     ,  #{productEquipManufacture}
+		     ,  #{storeCode}
+		     ,  #{equipUseable}
+		     ,  #{productEquipRentPrice}
+		     ,  #{lprodCode}
+		     )
+	</insert>
+	
+	<select id="findProductInStoreByProductCode" resultType="stock">
+		SELECT  STORE_STOCK_QUANTITY
+		     ,  STORE_CODE
+		     ,  STORE_SUPPLY_DATE
+		     ,  PRODUCT_CODE
+		  FROM  TB_STORE_STOCK
+		 WHERE  STORE_CODE 		= #{storeCode}
+		   AND  PRODUCT_CODE 	= #{productCode}
+	
+	</select>
+	
+	<insert id="insertProductToStore">
+		INSERT 
+		  INTO  TB_STORE_STOCK 
+		     (  STORE_STOCK_QUANTITY
+		     ,  STORE_CODE
+		     ,  STORE_SUPPLY_DATE
+		     ,  PRODUCT_CODE
+		     ) 
+		VALUES
+		     (  #{storeStockQuantity}
+		     ,  #{storeCode}
+		     ,  #{storeSupplyDate}
+		     ,  #{productCode}
+		     )		
+	</insert>
+	
+	<update id="addStoreStock">
+		UPDATE  TB_STORE_STOCK
+		   SET  STORE_STOCK_QUANTITY = STORE_STOCK_QUANTITY + #{storeStockQuantity}
+		 WHERE  STORE_CODE 	 = #{storeCode}
+		   AND  PRODUCT_CODE = #{productCode}		
+	
+	</update>
+	
+	<select id="selectStoreByOrderNo" resultType="store">
+		SELECT  A.STORE_CODE
+		     ,  A.STORE_NAME
+		     ,  A.STORE_WIDTH
+		     ,  A.STORE_HEIGHT
+		     ,  A.USING_GUIDE
+		     ,  A.STORE_STATUS
+		     ,  A.ADDR_DONM_CODE
+		     ,  A.ADDR_SIGUGUN_CODE
+		     ,  A.STORE_TOTAL_SEAT
+		     ,  A.STORE_CONTRACT_STATUS
+		     ,  A.STORE_ADDR
+		     ,  A.STORE_MAP_X
+		     ,  A.STORE_MAP_Y
+		     ,  A.STORE_SEAT_MAP
+		     ,  A.STORE_PHONE
+		     ,  A.STORE_IMAGE_URL
+		     ,  A.STORE_CID
+		  FROM  TB_STORE A, TB_ORDER_PRODUCT B
+		 WHERE  A.STORE_CODE 	 = B.STORE_CODE
+		   AND  ORDER_PRODUCT_NO = #{orderProductNo}
+	
+	</select>
+	
+	<update id="updateStoreSeatMap">
+		UPDATE  TB_STORE
+		   SET  STORE_SEAT_MAP = #{storeSeatMap}
+		 WHERE  STORE_CODE = #{storeCode}
+
+	</update>
+	
+	<select id="selectStockListByStoreCode" resultType="stock">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+	
+		SELECT  B.STORE_STOCK_QUANTITY
+		     ,  B.STORE_CODE
+		     ,  B.STORE_SUPPLY_DATE
+		     ,  B.PRODUCT_CODE
+		     ,  A.PRODUCT_NAME
+		     ,  A.PRODUCT_PRICE
+		     ,  A.PRODUCT_QUANTITY
+		     ,  A.LPROD_CODE
+		     ,  A.PRODUCT_USEABLE
+		     ,  A.PRODUCT_MEMO
+		     ,  C.LPROD_NAME
+		  FROM  TB_STORE_STOCK B, TB_PRODUCT A, TB_LPROD C
+		 WHERE  A.PRODUCT_CODE 	= B.PRODUCT_CODE
+		   AND  C.LPROD_CODE 	= A.LPROD_CODE
+           AND  B.STORE_CODE 	= #{storeCode}
+           <include refid="stock_search"/>
+	<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<update id="updateProductCnt">
+		UPDATE  TB_STORE_STOCK
+		   SET  STORE_STOCK_QUANTITY = #{storeStockQuantity}
+		 WHERE  STORE_CODE = #{storeCode}
+		   AND  PRODUCT_CODE = #{productCode}
+	</update>
+	
+	<select id="selectSearchStoreList" resultType="store">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  A.STORE_CODE
+			 ,  A.STORE_NAME
+			 ,  A.STORE_WIDTH
+		     ,  A.STORE_HEIGHT
+			 ,  A.USING_GUIDE
+			 ,  A.STORE_STATUS
+			 ,  A.ADDR_DONM_CODE
+			 ,  A.ADDR_SIGUGUN_CODE
+			 ,  A.STORE_TOTAL_SEAT
+			 ,  A.STORE_CONTRACT_STATUS
+			 ,  A.STORE_ADDR
+			 ,  A.STORE_MAP_X
+			 ,  A.STORE_MAP_Y
+			 ,  A.STORE_SEAT_MAP
+			 ,  A.STORE_PHONE
+			 ,  A.STORE_IMAGE_URL
+			 ,  A.STORE_CID
+			 ,  B.CONTRACT_PERMIT_DATE
+			 ,  FN_GET_GRADE(A.STORE_CODE) AS STORE_GRADE
+		  FROM  TB_STORE A
+          LEFT  JOIN TB_CONTRACT_AGREEMENT B
+            ON  A.STORE_CODE = B.STORE_CODE
+		 WHERE  1=1
+		   AND  A.STORE_CONTRACT_STATUS = #{storeContractStatus}
+		<include refid="storeSearch"/>
+		 ORDER  BY B.CONTRACT_PERMIT_DATE DESC
+		
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="selectSearchStoreListCount" resultType="int">
+		SELECT  COUNT(*)
+		 FROM   TB_STORE A
+          LEFT  JOIN TB_CONTRACT_AGREEMENT B
+            ON  A.STORE_CODE = B.STORE_CODE
+		 WHERE  1=1
+		   AND  A.STORE_CONTRACT_STATUS = #{storeContractStatus}
+		<include refid="storeSearch"/>
+		 ORDER  BY B.CONTRACT_PERMIT_DATE DESC
+	</select>
+	
+	<select id="getSearchStore" resultType="kr.co.scm.store.vo.SearchStoreVO">
+		SELECT  OWNER_LIST.*
+			 ,  C.STORE_NAME
+	         ,  C.STORE_TOTAL_SEAT
+	         ,  C.STORE_ADDR
+	         ,  C.STORE_PHONE
+	         ,  C.USING_GUIDE
+	         ,  C.STORE_CODE
+	         ,  C.STORE_IMAGE_URL
+	         ,  C.STORE_CID
+	         ,  (
+		         SELECT  COUNT(*) AS CAPA
+		           FROM  TB_STUDYROOM A, TB_STORE B                
+		          WHERE  A.STORE_CODE = B.STORE_CODE
+		            AND  A.STORE_CODE = #{storeCode}
+	            ) AS STUDYROOM_CAPA
+	         ,  FN_GET_GRADE(C.STORE_CODE) AS STORE_GRADE
+	         ,  FN_GET_STORE_SCRAP_CNT(C.STORE_CODE) AS STORE_SCRAP_CNT
+	         ,  C.STORE_MAP_X
+	         ,  C.STORE_MAP_Y
+    	  FROM 
+	           (
+	             SELECT  A.OWNER_NAME
+	             	  ,  A.OWNER_EMAIL
+	             	  ,  A.AFFILIATE_REG_START_DATE
+                      ,  A.AFFILIATE_REG_END_DATE
+	             	  ,  B.STORE_CODE
+	               FROM  TB_OWNER A, TB_CONTRACT_AGREEMENT B
+	              WHERE  A.OWNER_ID = B.OWNER_ID
+	           )  OWNER_LIST
+	     INNER  JOIN TB_STORE C ON OWNER_LIST.STORE_CODE = C.STORE_CODE
+	     WHERE  OWNER_LIST.STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="getSearchStoreEquipmentList" resultType="kr.co.scm.store.vo.EquipVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		  SELECT  EQUIP_NAME
+		       ,  EQUIP_MANUFACTURE
+			   ,  COUNT(*) AS EQUIP_CNT
+			FROM  TB_EQUIP 
+		   WHERE  STORE_CODE = #{storeCode}
+		   GROUP  BY  EQUIP_NAME,EQUIP_MANUFACTURE
+          
+         <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="selectEquipListByStoreCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_EQUIP B
+         WHERE  B.STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="getSearchStoreSeatReviewsList" resultType="kr.co.scm.mypage.vo.SeatReviewsVO">
+		SELECT  C.MEM_ID
+			 ,  C.RENT_SEAT_NO
+			 ,  C.SEAT_REVIEWS_REG_DATE
+			 ,  C.SEAT_REVIEWS_CONTENT
+			 ,  C.SEAT_GRADE
+		  FROM  TB_STORE A
+         INNER  JOIN TB_RENT_SEAT B ON A.STORE_CODE = B.STORE_CODE
+         INNER  JOIN TB_SEAT_REVIEWS C ON B.RENT_SEAT_NO = C.RENT_SEAT_NO
+		 WHERE  B.STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="getSearchStoreRoomReviewsList" resultType="kr.co.scm.mypage.vo.StudyRoomReviewsVO">
+		SELECT  A.STORE_CODE
+			 ,  B.STUDYROOM_NO
+			 ,  B.STUDYROOM_NAME
+			 ,  D.MEM_ID
+			 ,  D.REVIEWS_CONTENT
+			 ,  D.STUDYROOM_GRADE
+			 ,  D.STUDYROOM_REVIEWS_REG_DATE
+		  FROM  TB_STORE A
+		 INNER  JOIN TB_STUDYROOM B ON A.STORE_CODE = B.STORE_CODE
+		 INNER  JOIN TB_RENT_STUDYROOM C ON B.STUDYROOM_NO = C.STUDYROOM_NO
+		 INNER  JOIN TB_STUDYROOM_REVIEWS D ON C.STUDYROOM_RESERV_NO = D.STUDYROOM_RESERV_NO
+ 		 WHERE  A.STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="selectSearchStoreListBySigugun" resultType="store">
+		SELECT  STORE_CODE
+			 ,  STORE_NAME
+			 ,  STORE_WIDTH
+		     ,  STORE_HEIGHT
+			 ,  USING_GUIDE
+			 ,  STORE_STATUS
+			 ,  ADDR_DONM_CODE
+			 ,  ADDR_SIGUGUN_CODE
+			 ,  STORE_TOTAL_SEAT
+			 ,  STORE_CONTRACT_STATUS
+			 ,  STORE_ADDR
+			 ,  STORE_MAP_X
+			 ,  STORE_MAP_Y
+			 ,  STORE_SEAT_MAP
+			 ,  STORE_PHONE
+			 ,  STORE_IMAGE_URL
+			 ,  STORE_CID
+			 ,  (
+		     		SELECT  COUNT(*)
+		     		  FROM  TB_STUDYROOM B
+		     		 WHERE  B.STORE_CODE = A.STORE_CODE
+		     	) AS STUDYROOM_CNT
+		  FROM  TB_STORE A
+		 WHERE  1=1
+		   AND  STORE_CONTRACT_STATUS = 'CS03'
+		<if test="addrDonmCode != null and addrDonmCode != ''">
+		   AND  ADDR_DONM_CODE = #{addrDonmCode}
+		  <if test="addrSigugunCode != null and addrSigugunCode != ''">
+		   AND  ADDR_SIGUGUN_CODE = #{addrSigugunCode}
+		  </if>
+		</if>
+	</select>
+	
+	
+	<select id="selectReivewListByStore" resultType="kr.co.scm.mypage.vo.ReviewVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		
+		SELECT  REVIEW_LIST.*
+		  FROM
+			    (  
+				SELECT  NVL(SEAT_REVIEWS.RENT_SEAT_NO,ROOM_REVIEWS.STUDYROOM_RESERV_NO ) 	AS REVIEW_NO
+				     ,  NVL(SEAT_REVIEWS.STORE_CODE,ROOM_REVIEWS.STORE_CODE) 				AS STORE_CODE
+				     ,  NVL(SEAT_REVIEWS.KIND,ROOM_REVIEWS.KIND) 							AS KIND
+				     ,  NVL(  SEAT_REVIEWS.SEAT_REVIEWS_REG_DATE
+				     		, ROOM_REVIEWS.STUDYROOM_REVIEWS_REG_DATE) 						AS REIVEW_REG_DATE
+				     ,  NVL(SEAT_REVIEWS.SEAT_GRADE,ROOM_REVIEWS.STUDYROOM_GRADE) 			AS GRADE
+				     ,  NVL(SEAT_REVIEWS.MEM_ID,ROOM_REVIEWS.MEM_ID) 						AS MEM_ID
+				     ,  NVL(SEAT_REVIEWS.STORE_NAME,ROOM_REVIEWS.STORE_NAME) 				AS STORE_NAME
+				     ,  NVL(SEAT_REVIEWS.SEAT_REVIEWS_CONTENT,ROOM_REVIEWS.REVIEWS_CONTENT) AS REVIEW_CONTENT
+				  FROM
+			            (
+			            SELECT  C.RENT_SEAT_NO
+				             ,  A.STORE_CODE
+				             ,  A.STORE_NAME
+				             ,  'SEAT' AS KIND
+				             ,  C.SEAT_REVIEWS_REG_DATE
+				             ,  C.SEAT_GRADE
+				             ,  C.MEM_ID
+				             ,  C.SEAT_REVIEWS_CONTENT
+				          FROM  TB_STORE A
+				         RIGHT  JOIN TB_RENT_SEAT B
+				            ON  A.STORE_CODE = B.STORE_CODE
+				         INNER  JOIN TB_SEAT_REVIEWS C
+				            ON  C.RENT_SEAT_NO = B.RENT_SEAT_NO
+				        ) SEAT_REVIEWS
+				  FULL  OUTER JOIN  (
+				  					SELECT  C.STUDYROOM_RESERV_NO
+					                     ,  A.STORE_CODE 
+					                     ,  A.STORE_NAME
+					                     ,  'ROOM' AS KIND
+					                     ,  C.STUDYROOM_REVIEWS_REG_DATE
+					                     ,  C.STUDYROOM_GRADE
+					                     ,  C.MEM_ID
+					                     ,  C.REVIEWS_CONTENT
+					                  FROM  TB_STORE A
+					                 RIGHT  JOIN  (
+					                 			  SELECT  D.*
+					                                   ,  E.STORE_CODE
+					                                FROM  TB_RENT_STUDYROOM D
+					                               INNER  JOIN TB_STUDYROOM E
+					                                  ON  D.STUDYROOM_NO = E.STUDYROOM_NO
+					                              ) B
+					                    ON  A.STORE_CODE = B.STORE_CODE
+					                 INNER  JOIN TB_STUDYROOM_REVIEWS C
+					                    ON  C.STUDYROOM_RESERV_NO = B.STUDYROOM_RESERV_NO
+					                ) ROOM_REVIEWS
+				    ON  SEAT_REVIEWS.KIND = ROOM_REVIEWS.KIND
+				) REVIEW_LIST
+		 WHERE  REVIEW_LIST.STORE_CODE = #{storeCode}
+		 ORDER  BY REVIEW_LIST.REIVEW_REG_DATE DESC
+		 		
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   	    ]]>	     
+	</select>
+	
+	<select id="selectReivewListByStoreCount" resultType="int">
+		SELECT  COUNT(*) AS CNT
+          FROM  (
+        			SELECT  REVIEW_LIST.*
+		  FROM
+			    (  
+				SELECT  NVL(SEAT_REVIEWS.RENT_SEAT_NO,ROOM_REVIEWS.STUDYROOM_RESERV_NO ) 	AS REVIEW_NO
+				     ,  NVL(SEAT_REVIEWS.STORE_CODE,ROOM_REVIEWS.STORE_CODE) 				AS STORE_CODE
+				     ,  NVL(SEAT_REVIEWS.KIND,ROOM_REVIEWS.KIND) 							AS KIND
+				     ,  NVL(  SEAT_REVIEWS.SEAT_REVIEWS_REG_DATE
+				     		, ROOM_REVIEWS.STUDYROOM_REVIEWS_REG_DATE) 						AS REIVEW_REG_DATE
+				     ,  NVL(SEAT_REVIEWS.SEAT_GRADE,ROOM_REVIEWS.STUDYROOM_GRADE) 			AS GRADE
+				     ,  NVL(SEAT_REVIEWS.MEM_ID,ROOM_REVIEWS.MEM_ID) 						AS MEM_ID
+				     ,  NVL(SEAT_REVIEWS.STORE_NAME,ROOM_REVIEWS.STORE_NAME) 				AS STORE_NAME
+				     ,  NVL(SEAT_REVIEWS.SEAT_REVIEWS_CONTENT,ROOM_REVIEWS.REVIEWS_CONTENT) AS REVIEW_CONTENT
+				  FROM
+			            (
+			            SELECT  C.RENT_SEAT_NO
+				             ,  A.STORE_CODE
+				             ,  A.STORE_NAME
+				             ,  'SEAT' AS KIND
+				             ,  C.SEAT_REVIEWS_REG_DATE
+				             ,  C.SEAT_GRADE
+				             ,  C.MEM_ID
+				             ,  C.SEAT_REVIEWS_CONTENT
+				          FROM  TB_STORE A
+				         RIGHT  JOIN TB_RENT_SEAT B
+				            ON  A.STORE_CODE = B.STORE_CODE
+				         INNER  JOIN TB_SEAT_REVIEWS C
+				            ON  C.RENT_SEAT_NO = B.RENT_SEAT_NO
+				        ) SEAT_REVIEWS
+				  FULL  OUTER JOIN  (
+				  					SELECT  C.STUDYROOM_RESERV_NO
+					                     ,  A.STORE_CODE 
+					                     ,  A.STORE_NAME
+					                     ,  'ROOM' AS KIND
+					                     ,  C.STUDYROOM_REVIEWS_REG_DATE
+					                     ,  C.STUDYROOM_GRADE
+					                     ,  C.MEM_ID
+					                     ,  C.REVIEWS_CONTENT
+					                  FROM  TB_STORE A
+					                 RIGHT  JOIN  (
+					                 			  SELECT  D.*
+					                                   ,  E.STORE_CODE
+					                                FROM  TB_RENT_STUDYROOM D
+					                               INNER  JOIN TB_STUDYROOM E
+					                                  ON  D.STUDYROOM_NO = E.STUDYROOM_NO
+					                              ) B
+					                    ON  A.STORE_CODE = B.STORE_CODE
+					                 INNER  JOIN TB_STUDYROOM_REVIEWS C
+					                    ON  C.STUDYROOM_RESERV_NO = B.STUDYROOM_RESERV_NO
+					                ) ROOM_REVIEWS
+				    ON  SEAT_REVIEWS.KIND = ROOM_REVIEWS.KIND
+				) REVIEW_LIST
+		 WHERE  REVIEW_LIST.STORE_CODE = #{storeCode}
+		 ORDER  BY REVIEW_LIST.REIVEW_REG_DATE DESC
+        		)
+	</select>
+	
+	<select id="getDailySalesListBySeat" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) SEAT_OUT
+   			 ,  NVL(SUM(A.CNT),0) SEAT_TOTALTIME
+		  FROM  ( 
+		  		   SELECT  TO_DATE(TO_CHAR(SEAT_OUT, 'YY/MM/DD'),'YYYY/MM/DD') DT  
+    		    		,  (SEAT_TOTALTIME)*50 CNT                                 
+       		      	 FROM  TB_RENT_SEAT                                            
+    		        WHERE  STORE_CODE = #{storeCode}                               
+			          AND  SEAT_OUT IS NOT NULL                                    
+			          AND  SEAT_OUT > ADD_MONTHS(SYSDATE,-1)                       
+			        ORDER  BY TO_CHAR(SEAT_OUT, 'YY/MM/DD')                    
+			 	)  A                                                               
+			 ,  
+        <![CDATA[
+			    (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + 1) 
+			    )  B
+		        ]]> 
+			    
+	 	 WHERE  B.DT = A.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) DESC
+	
+		
+	</select>
+	
+	<select id="getMonthlySalesListBySeat" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM') SEAT_OUT
+   			 ,  NVL(SUM(A.CNT),0) SEAT_TOTALTIME
+		  FROM  ( 
+		  		   SELECT  TO_DATE(TO_CHAR(SEAT_OUT, 'YY/MM/DD'),'YYYY/MM/DD') DT  
+    		    		,  (SEAT_TOTALTIME)*50 CNT                                 
+       		      	 FROM  TB_RENT_SEAT                                            
+    		        WHERE  STORE_CODE = #{storeCode}                               
+			          AND  SEAT_OUT IS NOT NULL                                    
+			          AND  SEAT_OUT > ADD_MONTHS(SYSDATE,-12)                       
+			        ORDER  BY TO_CHAR(SEAT_OUT, 'YY/MM/DD')                    
+			 	)  A                                                               
+			 ,  
+        <![CDATA[
+			    (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-12),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-12),'YYYY/MM/DD') + 1) 
+			    )  B
+		        ]]> 
+			    
+	 	 WHERE  B.DT = A.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM')
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM')
+	
+		
+	</select>
+	
+	<select id="getHourlyInOutList" resultType="kr.co.scm.rent.vo.RentCommandVO">
+		SELECT  B.HOUR HOUR
+			 ,  NVL(A.SEAT_IN,0) CHECKINCNT
+			 ,  NVL(A.SEAT_OUT,0) CHECKOUTCNT
+		  FROM  
+		     (  SELECT  TO_NUMBER(TO_CHAR(SEAT_OUT,'HH24')) HOUR
+				     ,  COUNT(TO_CHAR(SEAT_IN,'HH24')) SEAT_IN
+				     ,  COUNT(TO_CHAR(SEAT_OUT,'HH24')) SEAT_OUT
+		          FROM  TB_RENT_SEAT    
+				 WHERE  STORE_CODE = #{storeCode}
+				   AND  SEAT_IN IS NOT NULL
+				   AND  SEAT_OUT IS NOT NULL
+				 GROUP  BY TO_NUMBER(TO_CHAR(SEAT_OUT,'HH24'))
+				 ORDER  BY HOUR 
+		     )  A
+		     ,
+	<![CDATA[
+		     (  SELECT  TO_NUMBER(TO_CHAR(LEVEL-1,'00')) AS HOUR
+		          FROM  DUAL 
+			   CONNECT  BY LEVEL <= 24
+			 )  B
+			]]>
+		 WHERE  B.HOUR = A.HOUR(+)
+		 ORDER  BY HOUR
+	</select>
+	
+	<select id="getDailySalesListByStudyRoom" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) STUDYROOM_RESERV_END
+   			 ,  NVL(SUM(A.CNT),0) STUDYROOM_TOTAL_PRICE
+		  FROM  ( 
+		  		   SELECT  TO_DATE(TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD'),'YYYY/MM/DD') DT  
+    		    		,  STUDYROOM_TOTAL_PRICE CNT                                 
+       		      	 FROM  TB_RENT_STUDYROOM C, TB_STUDYROOM D                                            
+    		        WHERE  C.STUDYROOM_NO = D.STUDYROOM_NO
+    				  AND  D.STORE_CODE = #{storeCode}                               
+			          AND  STUDYROOM_RESERV_END > ADD_MONTHS(SYSDATE,-1)                       
+			        ORDER  BY TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD')                    
+			 	)  A                                                               
+			 ,  
+        <![CDATA[
+			    (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + 1) 
+			    )  B
+		        ]]> 
+			    
+	 	 WHERE  B.DT = A.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) DESC
+	
+		
+	</select>
+	
+	<select id="getMonthlySalesListByStudyRoom" resultType="kr.co.scm.rent.vo.RentStudyRoomVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM') STUDYROOM_RESERV_END
+   			 ,  NVL(SUM(A.CNT),0) STUDYROOM_TOTAL_PRICE
+		  FROM  ( 
+		  		   SELECT  TO_DATE(TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD'),'YYYY/MM/DD') DT  
+    		    		,  STUDYROOM_TOTAL_PRICE CNT                                 
+       		      	 FROM  TB_RENT_STUDYROOM C, TB_STUDYROOM D                                            
+    		        WHERE  C.STUDYROOM_NO = D.STUDYROOM_NO
+    				  AND  D.STORE_CODE = #{storeCode}                               
+			          AND  STUDYROOM_RESERV_END > ADD_MONTHS(SYSDATE,-12)                       
+			        ORDER  BY TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD')                    
+			 	)  A                                                               
+			 ,  
+        <![CDATA[
+			    (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-12),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-12),'YYYY/MM/DD') + 1) 
+			    )  B
+		        ]]> 
+			    
+	 	 WHERE  B.DT = A.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM')
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM')
+	
+		
+	</select>
+	
+	<select id="getDailySalesListByEquip" resultType="kr.co.scm.store.vo.RentalEquipVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) EQUIP_RENT_OUT
+   			 ,  NVL(SUM(A.CNT),0) EQUIP_TOTAL_PRICE
+		  FROM  ( 
+		  		   SELECT  TO_DATE(TO_CHAR(EQUIP_RENT_OUT, 'YY/MM/DD'),'YYYY/MM/DD') DT  
+    		    		,  EQUIP_TOTAL_PRICE CNT                                 
+       		      	 FROM  TB_RENT_EQUIP C, TB_EQUIP D                                            
+    		        WHERE  C.EQUIP_CODE = D.EQUIP_CODE
+    				  AND  D.STORE_CODE = #{storeCode}                               
+			          AND  EQUIP_RENT_OUT > ADD_MONTHS(SYSDATE,-1)                       
+			        ORDER  BY TO_CHAR(EQUIP_RENT_OUT, 'YY/MM/DD')                    
+			 	)  A                                                               
+			 ,  (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			        <![CDATA[
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + 1) 
+			        ]]> 
+			                       
+			    )  B
+			    
+	 	 WHERE  B.DT = A.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) DESC
+	
+		
+	</select>
+	
+	<select id="getTotalRentSeat" resultType="int">
+		SELECT  NVL(SUM(SEAT_TOTALTIME),0)
+		  FROM  TB_RENT_SEAT
+		 WHERE  STORE_CODE = #{storeCode}
+	</select>
+	
+	<select id="getTotalRentStudyRoom" resultType="int">
+		SELECT  NVL(SUM(A.STUDYROOM_TOTAL_PRICE),0)
+		  FROM  TB_RENT_STUDYROOM A, TB_STUDYROOM B
+		 WHERE  A.STUDYROOM_NO = B.STUDYROOM_NO
+		   AND  B.STORE_CODE = #{storeCode}	
+	</select>
+	
+	<select id="getTotalRentEqiup" resultType="int">
+		SELECT  NVL(SUM(MAX(A.EQUIP_TOTAL_PRICE)),0)
+		  FROM  TB_RENT_EQUIP A, TB_EQUIP B
+		 WHERE  A.EQUIP_CODE = B.EQUIP_CODE
+		   AND  B.STORE_CODE = #{storeCode}	
+		 GROUP  BY A.EQUIP_TOTAL_PRICE
+	</select>
+	
+	<update id="updateStore">
+		UPDATE  TB_STORE
+		   SET  STORE_NAME 			= #{storeName}
+			 ,  STORE_WIDTH 		= #{storeWidth}
+			 ,  STORE_HEIGHT 		= #{storeHeight}
+			 ,  USING_GUIDE 		= #{usingGuide}
+			 ,  ADDR_DONM_CODE 		= #{addrDonmCode}
+			 ,  ADDR_SIGUGUN_CODE 	= #{addrSigugunCode}
+			 ,  STORE_ADDR 			= #{storeAddr}
+			 ,  STORE_MAP_X 		= #{storeMapX}
+			 ,  STORE_MAP_Y 		= #{storeMapY}
+			 ,  STORE_PHONE 		= #{storePhone}
+			 ,  STORE_CID 			= #{storeCid}
+			 ,  STORE_IMAGE_URL 	= #{storeImageUrl}
+		 WHERE  STORE_CODE = #{storeCode}
+	</update>
+	
+	<select id="selectStoreImgList" resultType="kr.co.scm.store.vo.StoreImageVO">
+		SELECT  STORE_IMAGE_NO
+		     ,  STORE_IMAGE_NAME
+		     ,  STORE_IMAGE_ORIGIN
+		     ,  STORE_IMAGE_COURS
+		     ,  STORE_IMAGE_EXTSN
+		     ,  STORE_IMAGE_CREAT
+		     ,  STORE_CODE
+		  FROM  TB_STORE_IMAGE
+		 WHERE  STORE_CODE = #{storeCode}
+	</select>
+	
+	<insert id="insertStoreImage">
+		<selectKey order="BEFORE" keyProperty="storeImageNo" resultType="int"> 
+			SELECT STORE_IMG_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_STORE_IMAGE 
+		  	 (  STORE_IMAGE_NO
+		     ,  STORE_IMAGE_NAME
+		     ,  STORE_IMAGE_ORIGIN
+		     ,  STORE_IMAGE_COURS
+		     ,  STORE_IMAGE_EXTSN
+		     ,  STORE_IMAGE_CREAT
+		     ,  STORE_CODE
+			 ) 
+		VALUES 
+			 (  #{storeImageNo}
+		     ,  #{storeImageName}
+		     ,  #{storeImageOrigin}
+		     ,  #{storeImageCours}
+		     ,  #{storeImageExtsn}
+		     ,  #{storeImageCreat}
+		     ,  #{storeCode}
+			 )
+	</insert>
+
+	<delete id="deleteStoreImage">
+		DELETE  FROM  TB_STORE_IMAGE
+		 WHERE  STORE_IMAGE_NO = #{storeImageNo}
+	</delete>
+	
+	<select id="getStoreImage" resultType="kr.co.scm.store.vo.StoreImageVO">
+		SELECT  STORE_IMAGE_NO
+		     ,  STORE_IMAGE_NAME
+		     ,  STORE_IMAGE_ORIGIN
+		     ,  STORE_IMAGE_COURS
+		     ,  STORE_IMAGE_EXTSN
+		     ,  STORE_IMAGE_CREAT
+		     ,  STORE_CODE
+		  FROM  TB_STORE_IMAGE
+		 WHERE  STORE_IMAGE_NO = #{storeImageNo}
+	</select>
+	
+	<select id="selectEquipPagingList" resultType="kr.co.scm.store.vo.EquipVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  B.EQUIP_NAME
+	   	     ,	B.EQUIP_MANUFACTURE
+	   		 ,	COUNT(B.EQUIP_NAME) AS EQUIP_CNT
+	   		 ,	B.EQUIP_RENT_PRICE
+	   		 ,	B.LPROD_CODE
+	   		 ,  A.LPROD_NAME
+ 	      FROM  TB_EQUIP B
+	         ,  TB_LPROD A
+	     WHERE  A.LPROD_CODE = B.LPROD_CODE
+	       AND  B.STORE_CODE = #{storeCode}
+	     GROUP  BY B.EQUIP_NAME,B.EQUIP_MANUFACTURE,B.EQUIP_RENT_PRICE,B.LPROD_CODE,A.LPROD_NAME
+	     ORDER  BY B.EQUIP_NAME
+          
+         <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="selectEquipPagingListCnt" resultType="int">
+		SELECT  COUNT(DISTINCT(B.EQUIP_NAME))
+    	  FROM  TB_EQUIP B
+      		 ,	TB_LPROD A
+         WHERE  A.LPROD_CODE = B.LPROD_CODE
+           AND  B.STORE_CODE = #{storeCode}
+	</select>
+	
+	
+	<select id="getStockListCnt" resultType="int">
+		SELECT  COUNT(B.PRODUCT_CODE)
+		  FROM  TB_STORE_STOCK B, TB_PRODUCT A, TB_LPROD C
+		 WHERE  A.PRODUCT_CODE 	= B.PRODUCT_CODE
+		   AND  C.LPROD_CODE 	= A.LPROD_CODE
+           AND  B.STORE_CODE 	= #{storeCode}
+           <include refid="stock_search"/>
+	</select>
+	
+	
+	<select id="getSeatExgistFlag" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_SEAT
+		 WHERE  STORE_CODE = #{storeCode}  
+	</select>
+	
+	<select id="getUseInfo" resultType="kr.co.scm.store.vo.StoreVO">
+	  <![CDATA[
+		SELECT
+	          (
+          		SELECT  NVL(COUNT(*),0)
+          		  FROM  TB_SEAT C
+          		 WHERE  C.STORE_CODE = #{storeCode}
+          		   AND  C.SEAT_LOCATION != 0
+          	 ) AS STORE_LOCATED_SEAT
+          	 
+          ,  (
+                SELECT  NVL(COUNT(*),0)
+                  FROM  TB_RENT_SEAT B
+                 WHERE  STORE_CODE = #{storeCode}
+                   AND  NVL(SEAT_IN,SYSDATE)   <= SYSDATE
+                   AND  NVL(SEAT_OUT,SYSDATE+1)  >= SYSDATE
+             ) AS STORE_CURRENT_SEAT
+             
+          ,  (
+                SELECT  NVL(COUNT(*),0)
+                  FROM  TB_STUDYROOM A
+                 WHERE  A.STORE_CODE = #{storeCode}
+             ) AS STORE_TOTAL_ROOM
+             
+          ,  (
+          		SELECT  NVL(COUNT(*),0)
+                  FROM  TB_RENT_STUDYROOM E, TB_STUDYROOM D
+                 WHERE  E.STUDYROOM_NO  = D.STUDYROOM_NO  
+                   AND  D.STORE_CODE    = 'test'
+                   AND  E.STUDYROOM_RESERV_START  <= SYSDATE
+                   AND  E.STUDYROOM_RESERV_END  >= SYSDATE
+             ) AS STORE_CURRENT_ROOM
+         FROM DUAL
+        ]]>
+	</select>
+	
+</mapper>
+

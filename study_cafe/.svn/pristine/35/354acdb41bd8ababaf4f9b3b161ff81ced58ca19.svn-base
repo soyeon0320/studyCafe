@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="kr.co.scm.store.dao.SeatMapper">
+
+
+	
+
+	<insert id="insertSeat">
+		<selectKey order="BEFORE" keyProperty="seatNo" resultType="int" >
+			SELECT NVL(MAX(SEAT_NO)+1,1) FROM TB_SEAT WHERE STORE_CODE = #{storeCode}
+		</selectKey>
+		INSERT  
+		  INTO  TB_SEAT 
+		     (  SEAT_NO
+		     ,  STORE_CODE
+		     ,  SEAT_INFO
+		     ,  SEAT_LOCATION
+		     ,  SEAT_USEABLE
+		     ,  SEAT_DIRECTION
+		     ) 
+	    VALUES  
+	         (  #{seatNo}
+		     ,  #{storeCode}
+		     ,  '0'
+		     ,  '0'
+		     ,  'Y'
+		     ,  'N'
+		     ) 	
+	</insert>
+
+	<select id="selectSeatByStoreCode" resultType="seat">
+		SELECT  SEAT_NO
+		     ,  STORE_CODE
+		     ,  SEAT_USEABLE
+		     ,  SEAT_INFO
+		     ,  SEAT_LOCATION
+		     ,  SEAT_DIRECTION
+		  FROM  TB_SEAT
+		 WHERE  STORE_CODE = #{storeCode}
+	     ORDER  BY SEAT_LOCATION
+	</select>  
+
+	<select id="selectSeatCntByStoreCode" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_SEAT
+		 WHERE  STORE_CODE = #{storeCode}
+	</select>
+	
+	<update id="updateSeat">
+		UPDATE  tb_seat
+	       SET  SEAT_LOCATION 	= #{seatLocation}
+		     ,  SEAT_USEABLE	= #{seatUseable}
+		     ,  SEAT_INFO 		= #{seatInfo}
+		     ,  SEAT_DIRECTION 	= #{seatDirection}
+		 WHERE  STORE_CODE 		= #{storeCode}
+		   AND  SEAT_NO 		= #{seatNo}
+		  
+	</update>
+	
+	<select id="selectLocatedSeatByStoreCode" resultType="seat">
+		SELECT  SEAT_NO
+		     ,  STORE_CODE
+		     ,  SEAT_USEABLE
+		     ,  SEAT_INFO
+		     ,  SEAT_LOCATION
+		     ,  SEAT_DIRECTION
+		  FROM  TB_SEAT
+		 WHERE  STORE_CODE 		= #{storeCode}	
+		   AND  SEAT_LOCATION 	!= 0
+		 ORDER  BY SEAT_LOCATION
+	
+	</select>
+	
+	<select id="selectUnLocatedSeatByStoreCode" resultType="seat">
+		SELECT  SEAT_NO
+		     ,  STORE_CODE
+		     ,  SEAT_USEABLE
+		     ,  SEAT_INFO
+		     ,  SEAT_LOCATION
+		     ,  SEAT_DIRECTION
+		  FROM  TB_SEAT
+		 WHERE  STORE_CODE 		= #{storeCode}
+		   AND  SEAT_LOCATION	= 0
+		 ORDER  BY SEAT_LOCATION
+	</select>
+	
+</mapper>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.store.dao.OwnerMapper">
+
+   <select id="selectOwnerById" parameterType="kr.co.scm.store.vo.OwnerVO" resultType="kr.co.scm.store.vo.OwnerVO">
+      SELECT  A.OWNER_ID
+          ,  A.OWNER_NAME
+          ,  A.BUSINESS_NUMBER
+          ,  A.OWNER_TEL
+          ,  A.OWNER_PASS
+          ,  A.OWNER_CONTRACT_STATUS
+          ,  A.OWNER_EMAIL
+          ,  A.AFFILIATE_REG_START_DATE
+          ,  A.AFFILIATE_REG_END_DATE
+          ,  B.STORE_CODE
+          ,  B.STORE_NAME
+          ,  B.STORE_ADDR
+             <![CDATA[
+          ,  (
+          		SELECT  NVL(COUNT(*),0)
+          		  FROM  TB_SEAT C
+          		 WHERE  C.STORE_CODE = A.STORE_CODE
+          		   AND  A.OWNER_ID = #{ownerId} 
+          		   AND  C.SEAT_LOCATION != 0
+          	 ) AS STORE_TOTAL_SEAT
+          ,  (
+                SELECT  NVL(COUNT(*),0)
+                  FROM  TB_RENT_SEAT
+                 WHERE  STORE_CODE = B.STORE_CODE
+                   AND  SEAT_IN   <= SYSDATE
+                   AND  NVL(SEAT_OUT,SYSDATE+1)  >= SYSDATE
+             ) AS STORE_CURRENT_SEAT
+          ,  (
+                SELECT  NVL(COUNT(*),0)
+                  FROM  TB_STUDYROOM
+                 WHERE  STORE_CODE = B.STORE_CODE
+             ) AS STORE_TOTAL_ROOM
+          ,  (
+               SELECT  NVL(COUNT(*),0)
+                  FROM  TB_RENT_STUDYROOM C, TB_STUDYROOM D
+                 WHERE  C.STUDYROOM_NO  = D.STUDYROOM_NO  
+                   AND   D.STORE_CODE    = B.STORE_CODE
+                   AND  STUDYROOM_IN   <= SYSDATE
+                   AND  NVL(STUDYROOM_OUT,SYSDATE+1)  >= SYSDATE
+             ) AS STORE_CURRNET_ROOM
+             ]]>
+        FROM  TB_OWNER A, TB_STORE B
+       WHERE  A.STORE_CODE = B.STORE_CODE
+       <choose>
+          <when test="ownerId != null">
+         AND  A.OWNER_ID = #{ownerId}
+          </when>
+          <when test="storeCode != null">
+         AND  B.STORE_CODE = #{storeCode}
+          </when>
+       </choose>
+   </select>
+   <select id="selectOwnerByStoreCode" parameterType="kr.co.scm.store.vo.OwnerVO" resultType="kr.co.scm.store.vo.OwnerVO">
+      SELECT  A.OWNER_ID
+          ,  A.OWNER_NAME
+          ,  A.BUSINESS_NUMBER
+          ,  A.OWNER_TEL
+          ,  A.OWNER_PASS
+          ,  A.OWNER_CONTRACT_STATUS
+          ,  A.OWNER_EMAIL
+          ,  B.STORE_CODE
+          ,  B.STORE_NAME
+          ,  B.STORE_ADDR
+          ,  B.STORE_TOTAL_SEAT
+             <![CDATA[
+          ,  (
+                SELECT  COUNT(*)
+                  FROM  TB_RENT_SEAT
+                 WHERE  STORE_CODE = B.STORE_CODE
+                   AND  SEAT_IN   <= SYSDATE
+                   AND  NVL(SEAT_OUT,SYSDATE+1)  >= SYSDATE
+             ) AS STORE_CURRENT_SEAT
+          ,  (
+                SELECT  COUNT(*)
+                  FROM  TB_STUDYROOM
+                 WHERE  STORE_CODE = B.STORE_CODE
+             ) AS STORE_TOTAL_ROOM
+          ,  (
+               SELECT  COUNT(*)
+                  FROM  TB_RENT_STUDYROOM C, TB_STUDYROOM D
+                 WHERE  C.STUDYROOM_NO  = D.STUDYROOM_NO  
+                   AND   D.STORE_CODE    = B.STORE_CODE
+                   AND  STUDYROOM_IN   <= SYSDATE
+                   AND  NVL(STUDYROOM_OUT,SYSDATE+1)  >= SYSDATE
+             ) AS STORE_CURRNET_ROOM
+             ]]>
+        FROM  TB_OWNER A, TB_STORE B
+       WHERE  A.STORE_CODE = B.STORE_CODE
+         AND  B.STORE_CODE = #{storeCode}
+   </select>
+   
+   <select id="findOwnerById" parameterType="str" resultType="kr.co.scm.store.vo.OwnerVO">
+      SELECT  OWNER_ID
+        FROM  TB_OWNER
+       WHERE  OWNER_NAME = #{ownerName}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+         AND  OWNER_TEL = #{ownerTel}
+   </select>
+   
+   <update id="updatePw">
+      UPDATE  TB_OWNER
+         SET  OWNER_PASS = #{ownerPass}
+       WHERE  OWNER_ID = #{ownerId}
+   </update>
+   
+   <select id="selectOwnerByTel" parameterType="str" resultType="kr.co.scm.store.vo.OwnerVO">
+      SELECT  OWNER_ID
+           , OWNER_NAME
+           , BUSINESS_NUMBER
+           , OWNER_TEL
+           , VAN
+           , CAT_ID
+           , AFFILIATE_REG_START_DATE
+           , OWNER_PASS
+           , OWNER_CONTRACT_STATUS
+           , OWNER_EMAIL
+           , STORE_CODE
+           , AFFILIATE_REG_END_DATE
+      FROM TB_OWNER
+      WHERE OWNER_TEL = #{ownerTel}
+   </select>
+   
+   <select id="selectOwnerByEamil" parameterType="str" resultType="kr.co.scm.store.vo.OwnerVO">
+      SELECT  OWNER_ID
+           , OWNER_NAME
+           , BUSINESS_NUMBER
+           , OWNER_TEL
+           , VAN
+           , CAT_ID
+           , AFFILIATE_REG_START_DATE
+           , OWNER_PASS
+           , OWNER_CONTRACT_STATUS
+           , OWNER_EMAIL
+           , STORE_CODE
+           , AFFILIATE_REG_END_DATE
+      FROM TB_OWNER
+      WHERE OWNER_EMAIL = #{ownerEmail}
+   </select>
+</mapper>

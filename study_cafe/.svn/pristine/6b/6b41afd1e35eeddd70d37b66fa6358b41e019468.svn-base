@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.admin.dao.MailMapper">
+	
+	<update id="insertMail">
+		<selectKey order="BEFORE" resultType="int" keyProperty="mailNo">
+			SELECT MAIL_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  tb_mail_send 
+		     (  mail_no
+		     ,	mail_title
+		     ,	admin_id
+		     ,	mail_content
+		     ,	mail_reg_date
+		     ,	admin_email
+		     ) 
+	    VALUES 
+	    	 (  #{mailNo}
+		     ,	#{mailTitle}
+		   	 ,	#{adminId}
+		     ,	#{mailContent}
+		     ,	SYSDATE
+		     ,	#{adminEmail}
+			 )
+	</update>
+	
+	<update id="inserMailHis">
+		INSERT 
+		  INTO  TB_MAIL_SEND_HIS 
+		     (  MAIL_NO
+		     ,  OWNER_ID
+		     )  
+		VALUES 
+		     (  #{mailNo}
+		     ,  #{ownerIdSend}
+		     )
+	</update>
+	
+	<select id="selectSendMailPagingList" resultType="kr.co.scm.admin.vo.MailSendHisVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		  
+		SELECT	A.MAIL_NO
+            ,	CASE WHEN COUNT(C.OWNER_EMAIL) > 1 THEN MIN(C.OWNER_EMAIL) || ' 외 ' || (COUNT(1) - 1)|| '건'
+	            	 WHEN COUNT(C.OWNER_EMAIL) = 1 THEN MIN(C.OWNER_EMAIL)
+	       		END AS RECIVER
+		   	 ,	A.MAIL_TITLE
+		     ,	A.ADMIN_ID
+		     ,	A.MAIL_REG_DATE
+		  FROM  TB_MAIL_SEND A
+		     ,  TB_MAIL_SEND_HIS B
+		     ,  TB_OWNER C
+		 WHERE  A.MAIL_NO = B.MAIL_NO
+		   AND  B.OWNER_ID = C.OWNER_ID
+         GROUP  BY A.MAIL_NO,A.MAIL_TITLE,A.ADMIN_ID,A.MAIL_REG_DATE
+         ORDER  BY A.MAIL_NO DESC
+		 
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	<select id="selectSendMailPagingListCount" resultType="int">
+		SELECT	COUNT(DISTINCT(A.MAIL_NO))    
+		  FROM  TB_MAIL_SEND A
+		     ,  TB_MAIL_SEND_HIS B
+		     ,  TB_OWNER C
+		 WHERE  A.MAIL_NO  = B.MAIL_NO
+		   AND  B.OWNER_ID = C.OWNER_ID
+	</select>
+	
+	<select id="selectSendMailAddrByMailNo" resultType="kr.co.scm.store.vo.OwnerVO">
+		SELECT  A.OWNER_EMAIL
+             ,  C.STORE_NAME
+		  FROM  TB_OWNER A
+		     ,  TB_MAIL_SEND_HIS B
+             ,  TB_STORE C
+		 WHERE  A.OWNER_ID = B.OWNER_ID
+           AND  A.STORE_CODE = C.STORE_CODE
+		   AND  B.MAIL_NO    = #{mailNo}
+	</select>
+
+	<select id="selectMailByMailNo" resultType="kr.co.scm.admin.vo.MailSendHisVO">
+		SELECT	MAIL_NO
+	   	 	 ,	MAIL_TITLE
+	   		 ,	ADMIN_ID
+	   	 	 ,	MAIL_CONTENT
+	   		 ,	MAIL_REG_DATE
+	   		 ,	ADMIN_EMAIL
+		  FROM  TB_MAIL_SEND
+		 WHERE  MAIL_NO = #{mailNo}   
+	</select>
+	<select id="selectSearchMailAddr" resultType="kr.co.scm.store.vo.OwnerVO">
+		SELECT  A.OWNER_EMAIL
+		     ,  A.OWNER_ID
+		     ,  B.STORE_NAME
+		  FROM  TB_OWNER A
+		     ,  TB_STORE B
+		 WHERE  A.STORE_CODE = B.STORE_CODE
+		 <if test="keyword != ''">
+		   AND  B.STORE_NAME LIKE '%'||#{keyword}||'%'
+		 </if>
+	</select>
+
+	
+	<select id="selectRecentMailList" resultType="kr.co.scm.admin.vo.MailSendVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		
+		
+		SELECT  A.MAIL_NO
+		     ,  A.MAIL_TITLE
+		     ,  A.ADMIN_ID
+		     ,  A.MAIL_CONTENT
+		     ,  A.MAIL_REG_DATE
+		     ,  A.ADMIN_EMAIL
+		  FROM  TB_MAIL_SEND_HIS B ,TB_MAIL_SEND A
+		 WHERE  A.MAIL_NO = B.MAIL_NO
+		   AND  B.OWNER_ID = #{ownerId}
+		 ORDER  BY A.MAIL_NO DESC
+		 
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > 0
+			    ) D3
+		 WHERE  ROWNUM <= 5
+		   ]]>
+	</select>
+	
+	
+	
+	
+</mapper>

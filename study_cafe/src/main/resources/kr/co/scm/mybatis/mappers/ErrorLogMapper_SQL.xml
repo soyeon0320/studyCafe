@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.exception.dao.ErrorLogMapper">
+	
+	<sql id="search_egov">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 'e_id'.toString()">
+					AND LOGIN_ID LIKE '%'||#{searchKeyword}||'%'	
+				</when>
+				<when test="searchCondition == 'e_actor'.toString()">
+					AND LOGIN_ACTOR LIKE '%'||#{searchKeyword}||'%'			
+				</when>
+				<when test="searchCondition == 'e_uri'.toString()">
+					AND REQUEST_URI LIKE '%'||#{searchKeyword}||'%'		
+				</when>
+				<when test="searchCondition == 'e_all'.toString()">
+					AND (
+							LOGIN_ID LIKE '%'||#{searchKeyword}||'%'
+											OR
+							LOGIN_ACTOR like '%'||#{searchKeyword}||'%'
+											OR
+							REQUEST_URI LIKE '%'||#{searchKeyword}||'%'						
+						)	
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	
+	
+	<insert id="insertErrorLog">
+		<selectKey order="BEFORE" resultType="int" keyProperty="errorLogNo"> 
+			SELECT LOG_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_ERROR_LOG 
+		     (  ERROR_LOG_NO
+			 ,  ERROR_REG_DATE
+			 ,  LOGIN_ID
+			 ,  LOGIN_ACTOR
+			 ,  REQUEST_IP
+			 ,  REQUEST_URI
+			 ,  PARAMS
+			 ,  CAUSE
+			 ,  MESSAGE
+			 ) 
+	    VALUES  
+	    	 (  #{errorLogNo}
+			 ,  #{errorRegDate}
+			 ,  #{loginId}
+			 ,  #{loginActor}
+			 ,  #{requestIP}
+			 ,  #{requestURI}
+			 ,  #{params}
+			 ,  #{cause}
+			 ,  #{message}
+			 )
+	</insert>
+	
+	<select id="selectLogList" resultType="kr.co.scm.exception.vo.ErrorLogVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (		
+		
+		SELECT  ERROR_LOG_NO
+		     ,  ERROR_REG_DATE
+		     ,  NVL(LOGIN_ID,'-') AS LOGIN_ID
+		     ,  NVL(LOGIN_ACTOR,'비회원') AS LOGIN_ACTOR
+		     ,  REQUEST_IP
+		     ,  REQUEST_URI
+		     ,  PARAMS
+		     ,  CAUSE
+		     ,  MESSAGE
+		  FROM  TB_ERROR_LOG
+		 WHERE  1=1
+		 <include refid="search_egov"/>
+		 ORDER  BY ERROR_LOG_NO DESC
+		<![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>		  
+	</select>
+	
+	<select id="selectErrorLog" resultType="kr.co.scm.exception.vo.ErrorLogVO">
+		SELECT  ERROR_LOG_NO
+		     ,  ERROR_REG_DATE
+		     ,  NVL(LOGIN_ID,'-') AS LOGIN_ID
+		     ,  NVL(LOGIN_ACTOR,'비회원') AS LOGIN_ACTOR
+		     ,  REQUEST_IP
+		     ,  REQUEST_URI
+		     ,  PARAMS
+		     ,  CAUSE
+		     ,  MESSAGE
+		  FROM  TB_ERROR_LOG
+		 WHERE  ERROR_LOG_NO = #{errorLogNo}
+	</select>
+	<select id="selectLogListCnt" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_ERROR_LOG		
+		 WHERE  1=1
+		 <include refid="search_egov"/>
+	</select>
+	
+	
+	
+</mapper>

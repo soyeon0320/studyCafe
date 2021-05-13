@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.board.dao.VocManageMapper">
+
+	
+	<select id="selectVocReplyByVocNo" resultType="kr.co.scm.board.vo.VocManageVO" parameterType="int">
+		SELECT  VOC_NO
+		     ,	VOC_REPLY_CONTENT
+		     ,	VOC_REPLY_NO
+		     ,	VOC_CONFIRM_DATE
+		     ,	ADMIN_ID
+		  FROM  TB_VOC_MANAGEMENT
+		 WHERE  VOC_NO = #{vocNo}
+	</select>
+	
+	<select id="selectVocReplyByVocReplyNo" resultType="kr.co.scm.board.vo.VocManageVO">
+		SELECT  VOC_NO
+		     ,	VOC_REPLY_CONTENT
+		     ,	VOC_REPLY_NO
+		     ,	VOC_CONFIRM_DATE
+		     ,	ADMIN_ID
+		  FROM  TB_VOC_MANAGEMENT
+		 WHERE  VOC_REPLY_NO = #{vocReplyNo}
+	</select>
+	
+	<update id="insertVocReply">
+		<selectKey order="BEFORE" resultType="int" keyProperty="vocReplyNo">
+			SELECT VOC_REPLY_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  tb_voc_management 
+		     (  voc_no
+		     ,	voc_reply_content
+		     ,	voc_reply_no
+		     ,	voc_confirm_date
+		     ,	admin_id
+		     ) 
+		VALUES 
+		     (  #{vocNo}
+		     ,  #{vocReplyContent}
+		     ,	#{vocReplyNo}
+		     ,	SYSDATE
+		     ,	#{adminId}
+		)
+	</update>
+	
+	<update id="updateVocReply">
+		UPDATE  TB_VOC_MANAGEMENT
+	       SET  VOC_REPLY_CONTENT = #{replyModifyContent}
+		 WHERE  VOC_REPLY_NO      = #{vocReplyNo}
+	</update>
+	
+	<update id="updateVocStatus">
+		UPDATE  TB_VOC
+		   SET  VOC_STATUS = 'Y'
+		 WHERE  VOC_NO = #{vocNo}
+	</update>
+	
+	
+	
+</mapper>
+
+
+
+

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.store.dao.UseMemberMapper">
+
+	<select id="selectMemberPagingList" resultType="kr.co.scm.user.vo.MemberVO">
+		 SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  A.STORE_CODE
+		     ,  A.MEM_ID
+		     ,  B.MEM_NAME
+		     ,	B.MEM_TEL
+		     ,	B.MEM_EMAIL
+		     ,	SUM(A.SEAT_TOTALTIME) AS SEAT_TOTALTIME
+		  FROM	TB_RENT_SEAT A
+		     ,	TB_MEMBER B
+		 WHERE  A.MEM_ID = B.MEM_ID
+		   AND  A.STORE_CODE = #{storeCode}
+		 GROUP BY A.STORE_CODE,A.MEM_ID,B.MEM_NAME,B.MEM_TEL ,B.MEM_EMAIL
+		 ORDER BY B.MEM_NAME
+		 
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+		 
+	</select>
+		
+	<select id="selectMemberPagingListCount" resultType="int">
+		SELECT  COUNT(DISTINCT(B.MEM_NAME)) 
+		  FROM	TB_RENT_SEAT A
+		     ,	TB_MEMBER B
+		 WHERE  A.MEM_ID = B.MEM_ID
+		   AND  A.STORE_CODE = #{storeCode}
+	
+	</select>	
+	
+	<select id="selectUseMember" resultType="kr.co.scm.user.vo.MemberVO">
+		SELECT  SUM(E.SEAT_TOTALTIME) AS SEAT_TOTALTIME
+		     ,	E.STORE_CODE
+		     ,	E.MEM_ID
+		     ,	D.MEM_NAME
+		     ,	D.MEM_TEL
+		     ,	D.MEM_EMAIL
+		     ,	D.MEM_MEMO
+		  FROM  TB_RENT_SEAT E
+		     ,	TB_MEMBER D
+		 WHERE  D.MEM_ID = E.MEM_ID
+		   AND  E.MEM_ID = #{memId}
+		   AND	E.STORE_CODE = #{storeCode}
+		 GROUP BY E.STORE_CODE,E.MEM_ID,D.MEM_NAME,D.MEM_TEL,D.MEM_EMAIL,D.MEM_MEMO  
+	</select>	
+	
+	<select id="selectSeatHisPagingList" resultType="kr.co.scm.rent.vo.RentSeatVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  E.SEAT_NO
+		     ,	E.SEAT_IN
+		     ,	E.SEAT_OUT
+		  FROM  TB_RENT_SEAT E
+		     ,	TB_MEMBER D
+		 WHERE  D.MEM_ID     = E.MEM_ID
+		   AND  E.MEM_ID     = #{memId}
+		   AND  E.STORE_CODE = #{storeCode}
+		 ORDER  BY E.SEAT_IN  
+		 
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+		 
+	</select>
+	
+	<select id="selectSeatHisPagingListCnt" resultType="int">
+		SELECT  COUNT(E.SEAT_NO)
+		  FROM  TB_RENT_SEAT E
+		     ,	TB_MEMBER D
+		 WHERE  D.MEM_ID     = E.MEM_ID
+		   AND  E.MEM_ID     = #{memId}
+		   AND  E.STORE_CODE = #{storeCode}
+	
+	</select>
+	
+	<update id="updateMemMemo">
+		UPDATE  TB_MEMBER
+   		   SET  MEM_MEMO = #{memMemo}
+         WHERE  MEM_ID   = #{memId}
+	</update>		
+		
+</mapper>
+
+
+
+

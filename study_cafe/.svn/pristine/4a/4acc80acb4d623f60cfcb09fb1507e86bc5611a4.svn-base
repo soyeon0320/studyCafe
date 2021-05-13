@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.board.dao.InfoMapper">
+
+	<sql id="search_egov">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 't'.toString()">
+					AND A.INFO_TITLE like '%'||#{searchKeyword}||'%'	
+				</when>
+				<when test="searchCondition == 'w'.toString()">
+					AND A.MEM_ID like '%'||#{searchKeyword}||'%'			
+				</when>
+				<when test="searchCondition == 'c'.toString()">
+					AND A.INFO_CONTENT like '%'||#{searchKeyword}||'%'		
+				</when>
+				<when test="searchCondition == 'tc'.toString()">
+					AND (
+						A.INFO_TITLE like '%'||#{searchKeyword}||'%'
+										OR
+						A.INFO_CONTENT like '%'||#{searchKeyword}||'%'
+					)
+				</when>
+				<when test="searchCondition == 'tcw'.toString()">
+					AND (
+							A.INFO_TITLE like '%'||#{searchKeyword}||'%'
+											OR
+							A.MEM_ID like '%'||#{searchKeyword}||'%'
+											OR
+							A.INFO_CONTENT like '%'||#{searchKeyword}||'%'						
+						)	
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="retrievePagingList" resultType="info">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT  A.INFO_NO
+	            ,A.INFO_TITLE
+			    ,A.INFO_CONTENT
+			    ,A.INFO_REG_DATE
+			    ,A.INFO_CNT
+			    ,A.MEM_ID
+			    ,A.ATTACH_NO
+			    ,NVL(B.REPLY_CNT,0)  AS REPLY_CNT
+		  FROM  TB_BOARD_INFO A
+          LEFT  JOIN  (
+	                  SELECT  INFO_NO
+	                       ,  COUNT(*) AS REPLY_CNT
+	                    FROM  TB_BOARD_INFO_REPLY
+	                   GROUP  BY INFO_NO
+	                  ) B
+	        ON  A.INFO_NO = B.INFO_NO
+		 WHERE  1 = 1  			  	
+		<include refid="search_egov" />
+		 ORDER  BY INFO_NO DESC
+		 
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+		   		
+	</select>	
+	
+	<select id="retrievePagingListCount" resultType="int">
+		SELECT	COUNT(*) totcnt
+	      FROM	TB_BOARD_INFO A
+		 WHERE	info_no is not null  			  	
+		<include refid="search_egov" />
+	</select>
+<!-- /////////////////////////////////////////////////////////////// -->	
+
+
+	<select id="selectInfoBoardByInfoNo" resultType="info">
+		
+		SELECT  A.INFO_NO
+		     ,  A.INFO_TITLE
+		     ,  A.INFO_CONTENT
+		     ,  A.INFO_REG_DATE
+		     ,  A.INFO_CNT
+		     ,  A.MEM_ID
+		     ,  B.MEM_NAME
+		     ,  A.ATTACH_NO
+		  FROM  TB_BOARD_INFO A
+		   	 ,  TB_MEMBER B
+		 WHERE  A.MEM_ID = B.MEM_ID
+	       AND  A.INFO_NO = #{infoNo}    
+	
+	</select>
+
+
+	<update id="insertInfoBoard">
+		<selectKey order="BEFORE" resultType="int" keyProperty="infoNo">
+			SELECT INFO_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  TB_BOARD_INFO
+		     (	INFO_NO
+		     ,  INFO_TITLE
+		     ,  INFO_CONTENT
+		     ,  INFO_REG_DATE
+		     ,  INFO_CNT
+		     ,  MEM_ID
+		     ,  ATTACH_NO
+		     )
+	   	VALUES
+	         (  #{infoNo}
+	         ,  #{infoTitle}
+	         ,  #{infoContent}
+	         ,  SYSDATE
+	         ,  0
+	         ,  #{memId}
+	         ,  #{attachNo}
+	         )
+	</update>
+
+	<update id="updateInfoBoard">
+		UPDATE  TB_BOARD_INFO
+		   SET  INFO_TITLE   = #{infoTitle}
+		     ,  INFO_CONTENT = #{infoContent}
+	     	<if test="attachNo != 0">
+     		 ,	ATTACH_NO	 = #{attachNo}
+	     	</if>
+		 WHERE  INFO_NO      = #{infoNo}          
+	</update>
+
+
+	<update id="deleteInfoBoard">
+		DELETE 
+		  FROM  TB_BOARD_INFO
+	  	 WHERE  INFO_NO = #{infoNo}
+	</update>
+
+	<update id="increaseViewCount">
+		UPDATE  TB_BOARD_INFO
+		   SET  INFO_CNT = INFO_CNT + 1
+		 WHERE  INFO_NO  = #{infoNo}
+	</update>
+
+	<select id="selectInfoScrapCount" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_INFO_SCRAP A, tb_board_info B
+		 WHERE  A.INFO_NO = B.INFO_NO
+           AND  A.INFO_NO = #{infoNo}
+           AND  A.MEM_ID = #{memId}
+	</select>
+
+	<update id="insertInfoScrap">
+		INSERT 
+		  INTO  TB_INFO_SCRAP
+			 (  INFO_NO
+			 ,  MEM_ID
+			 )
+		VALUES
+			 (
+				#{infoNo}
+			 ,  #{memId}
+			 )
+	</update>
+
+	<delete id="removeInfoScrap">
+		DELETE  FROM  TB_INFO_SCRAP
+		 WHERE  INFO_NO = #{infoNo}
+ 		   AND  MEM_ID = #{memId}
+	</delete>
+
+</mapper>

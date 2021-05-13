@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.admin.dao.AdminMapper">
+	
+	<sql id="search_order">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 'p'.toString()">
+					and product_name like '%'||#{searchKeyword}||'%'
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<sql id="memberSearch_egov">
+		<choose>
+			<when test="searchCondition=='id'.toString()">
+				AND MEM_ID LIKE '%' || #{searchKeyword} || '%'
+			</when>
+			<when test="searchCondition=='name'.toString()">
+				AND MEM_NAME LIKE '%' || #{searchKeyword} || '%'
+			</when>
+			<when test="searchCondition=='tel'.toString()">
+				AND MEM_TEL LIKE '%' || #{searchKeyword} || '%'
+			</when>
+			<otherwise>
+				ORDER BY MEM_ID ASC
+			</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="getMemberList" parameterType="kr.co.scm.user.vo.MemberVO" resultType="kr.co.scm.user.vo.MemberVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  		
+		SELECT  MEM_ID
+			 ,  MEM_NAME
+			 ,  MEM_PASS
+			 ,  MEM_TEL
+			 ,  MEM_EMAIL
+			 ,  MEM_BIR
+			 ,  MEM_DELETED
+			 ,  MEM_ROUTE
+			 ,  MEM_GEN
+			 ,  MEM_MEMO
+		  FROM  TB_MEMBER
+		 WHERE  MEM_ID IS NOT NULL
+		 <include refid="memberSearch_egov"/>
+		
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="getMemberListCount" parameterType="kr.co.scm.user.vo.MemberVO" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_MEMBER
+		 WHERE  MEM_ID IS NOT NULL
+		<include refid="memberSearch_egov"/>
+	</select>
+	
+	<select id="detail" resultType="kr.co.scm.user.vo.MemberVO">
+		SELECT  MEM_ID
+			 ,  MEM_NAME
+			 ,  MEM_PASS
+			 ,  MEM_TEL
+			 ,  MEM_EMAIL
+			 ,  MEM_BIR
+			 ,  MEM_DELETED
+			 ,  MEM_ROUTE
+			 ,  MEM_GEN
+			 ,  MEM_MEMO
+		  FROM  TB_MEMBER
+         WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="selectAdminById" parameterType="str" resultType="kr.co.scm.admin.vo.AdminVO">
+		SELECT  ADMIN_ID
+			 ,  ADMIN_PASS
+			 ,  ADMIN_NAME
+			 ,  ADMIN_EMAIL
+			 ,  ADMIN_HP
+	      FROM  TB_ADMIN
+		 WHERE  ADMIN_ID = #{adminId}
+	</select>
+		
+		
+	<!-- sales -->
+	<select id="getSalesByTicket" resultType="kr.co.scm.rent.vo.TicketVO">
+		SELECT  A.TICKET_NO
+		     ,  A.TICKET_PRICE
+		     ,  A.TICKET_NAME
+		     ,  NVL(B.CNT, 0) TICKET_TIME
+	 	  FROM  TB_TICKET A 
+	 	     ,  (
+	 	        	SELECT  TICKET_NO
+	                     ,  COUNT(*) CNT  
+	                  FROM  TB_TICKET_BUY
+	                 GROUP  BY TICKET_NO
+	            ) B
+		 WHERE  A.TICKET_NO = B.TICKET_NO (+)
+		 ORDER  BY A.TICKET_NO
+	</select>
+	
+	<select id="dailySales" resultType="kr.co.scm.admin.vo.AdminSalesVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) 	PERIOD
+		     ,  NVL(SUM(A.CNT),0) 						TICKETSALES
+		     ,  NVL(SUM(E.CNT),0) 						PRODSALES
+		  FROM  (
+			    	SELECT  TO_DATE(TO_CHAR(C.TICKET_BUY_DATE, 'YY/MM/DD'),'YYYY/MM/DD') DT
+				         ,  D.TICKET_PRICE CNT
+				      FROM  TB_TICKET_BUY C, TB_TICKET D
+				     WHERE  C.TICKET_NO = D.TICKET_NO    
+				       AND  C.TICKET_BUY_DATE > ADD_MONTHS(SYSDATE,-1)
+				     ORDER  BY TO_CHAR(C.TICKET_BUY_DATE, 'YY/MM/DD') 
+			    )  A
+			 ,  (
+				    SELECT  TO_DATE(TO_CHAR(ORDER_PRODUCT_REG_DATE, 'YY/MM/DD'),'YYYY/MM/DD') DT
+				         ,  ORDER_PRODUCT_TOTAL_PRICE CNT
+				      FROM  TB_ORDER_PRODUCT
+				     WHERE  ORDER_PRODUCT_REG_DATE > ADD_MONTHS(SYSDATE,-1)
+				     ORDER  BY TO_CHAR(ORDER_PRODUCT_REG_DATE, 'YY/MM/DD') DESC
+			    )  E                                                               
+			 ,  
+        <![CDATA[
+			    (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + 1) 
+			    )  B
+		        ]]> 
+			    
+	 	 WHERE  B.DT = A.DT(+)
+	 	   AND  B.DT = E.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))  
+	</select>
+	
+	<select id="monthlySales" resultType="kr.co.scm.admin.vo.AdminSalesVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM') 	PERIOD
+		     ,  NVL(SUM(A.CNT),0) 								TICKETSALES
+		     ,  NVL(SUM(E.CNT),0) 								PRODSALES
+		  FROM  (
+			    	SELECT  TO_DATE(TO_CHAR(C.TICKET_BUY_DATE, 'YY/MM/DD'),'YYYY/MM/DD') DT
+				         ,  D.TICKET_PRICE CNT
+				      FROM  TB_TICKET_BUY C, TB_TICKET D
+				     WHERE  C.TICKET_NO = D.TICKET_NO    
+				       AND  C.TICKET_BUY_DATE > ADD_MONTHS(SYSDATE,-12)
+				     ORDER  BY TO_CHAR(C.TICKET_BUY_DATE, 'YY/MM/DD') 
+			    )  A
+			 ,  (
+				    SELECT  TO_DATE(TO_CHAR(ORDER_PRODUCT_REG_DATE, 'YY/MM/DD'),'YYYY/MM/DD') DT
+				         ,  ORDER_PRODUCT_TOTAL_PRICE CNT
+				      FROM  TB_ORDER_PRODUCT
+				     WHERE  ORDER_PRODUCT_REG_DATE > ADD_MONTHS(SYSDATE,-12)
+				     ORDER  BY TO_CHAR(ORDER_PRODUCT_REG_DATE, 'YY/MM/DD') DESC
+			    )  E                                                               
+			 ,  
+        <![CDATA[
+			    (
+			       SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-12),'YYYY/MM/DD') + LEVEL - 1 AS DT
+			         FROM  DUAL
+			      CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')      
+			                       - TO_DATE(ADD_MONTHS(SYSDATE,-12),'YYYY/MM/DD') + 1) 
+			    )  B
+		        ]]> 
+			    
+	 	 WHERE  B.DT = A.DT(+)
+	 	   AND  B.DT = E.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM')
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM'), 'YYYY/MM') 
+	</select>
+	
+	<select id="dailyCntByType" resultType="kr.co.scm.admin.vo.AdminSalesVO">
+		SELECT  TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD')) PERIOD
+		     ,  NVL(SUM(A.CNT),0) 					 STUDYROOMUSE
+		     ,  NVL(SUM(C.CNT),0) 					 SEATUSE
+		     ,  NVL(SUM(D.CNT),0) 					 EQUIPUSE
+		  FROM  
+		     (  
+		        SELECT  TO_DATE(TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD'),'YYYY/MM/DD') DT
+		       		 ,  COUNT(*) CNT
+		    	  FROM  TB_RENT_STUDYROOM 
+			     WHERE  STUDYROOM_RESERV_END > ADD_MONTHS(SYSDATE,-1)
+			     GROUP  BY TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD')
+			     ORDER  BY TO_CHAR(STUDYROOM_RESERV_END, 'YY/MM/DD') 
+		     )  A
+		     ,
+		     ( 
+		<![CDATA[
+		        SELECT  TO_DATE(TO_CHAR(SEAT_OUT, 'YY/MM/DD'),'YYYY/MM/DD') DT
+		       		 ,  COUNT(*) CNT
+		    	  FROM  TB_RENT_SEAT
+		    	 WHERE  SEAT_OUT > ADD_MONTHS(SYSDATE,-1)
+			     GROUP  BY TO_CHAR(SEAT_OUT, 'YY/MM/DD')
+			     ORDER  BY TO_CHAR(SEAT_OUT, 'YY/MM/DD') 
+ 		]]>
+		     )  C
+		     ,
+		     (	
+		<![CDATA[
+		        SELECT  TO_DATE(TO_CHAR(EQUIP_RENT_END, 'YY/MM/DD'),'YYYY/MM/DD') DT
+		       		 ,  COUNT(*) CNT
+				  FROM  TB_RENT_EQUIP
+		    	 WHERE  EQUIP_RENT_END > ADD_MONTHS(SYSDATE,-1)
+			     GROUP  BY TO_CHAR(EQUIP_RENT_END, 'YY/MM/DD')
+			     ORDER  BY TO_CHAR(EQUIP_RENT_END, 'YY/MM/DD') 
+		]]>
+		     )  D
+		     ,
+		     (
+		<![CDATA[
+		        SELECT  TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + LEVEL - 1 AS DT
+		      	  FROM  DUAL 
+		       CONNECT  BY LEVEL <= (TO_DATE(SYSDATE,'YYYY/MM/DD')     
+		                       			- TO_DATE(ADD_MONTHS(SYSDATE,-1),'YYYY/MM/DD') + 1) 
+		]]>
+		     )  B
+		 WHERE  B.DT = A.DT(+)
+		   AND  B.DT = C.DT(+)
+		   AND  B.DT = D.DT(+)
+		 GROUP  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))
+		 ORDER  BY TO_DATE(TO_CHAR(B.DT, 'YYYY/MM/DD'))
+	</select>
+	
+	<select id="selecteMemberGenderStatic" resultType="kr.co.scm.admin.vo.MemberStaticVO">
+		SELECT  ROUND(COUNT(CASE WHEN MEM_GEN = 'M' THEN '남성' END) / COUNT(*) * 100) AS MALE_COUNT
+			 ,  ROUND(COUNT(CASE WHEN MEM_GEN = 'F' THEN '여성' END) / COUNT(*) * 100) AS FEMALE_COUNT
+		  FROM  TB_MEMBER
+	</select>
+	
+	<select id="selectMemberAgeStatic" resultType="kr.co.scm.admin.vo.MemberStaticVO">
+		SELECT  ROUND(COUNT(DECODE(SUBSTR(TO_CHAR(EXTRACT(YEAR FROM SYSDATE)) - TO_CHAR(SUBSTR(MEM_BIR,1,4)), 1, 1) , '1', '10대')) / COUNT(*) * 100) AS CALC_COUNT1
+			 ,  ROUND(COUNT(DECODE(SUBSTR(TO_CHAR(EXTRACT(YEAR FROM SYSDATE)) - TO_CHAR(SUBSTR(MEM_BIR,1,4)), 1, 1) , '2', '20대')) / COUNT(*) * 100) AS CALC_COUNT2
+			 ,  ROUND(COUNT(DECODE(SUBSTR(TO_CHAR(EXTRACT(YEAR FROM SYSDATE)) - TO_CHAR(SUBSTR(MEM_BIR,1,4)), 1, 1) , '3', '30대')) / COUNT(*) * 100) AS CALC_COUNT3
+			 ,  ROUND(COUNT(DECODE(SUBSTR(TO_CHAR(EXTRACT(YEAR FROM SYSDATE)) - TO_CHAR(SUBSTR(MEM_BIR,1,4)), 1, 1) , '4', '40대')) / COUNT(*) * 100) AS CALC_COUNT4
+			 ,  ROUND(COUNT(DECODE(SUBSTR(TO_CHAR(EXTRACT(YEAR FROM SYSDATE)) - TO_CHAR(SUBSTR(MEM_BIR,1,4)), 1, 1) , '5', '50대')) / COUNT(*) * 100) AS CALC_COUNT5
+			 ,  ROUND(COUNT(DECODE(SUBSTR(TO_CHAR(EXTRACT(YEAR FROM SYSDATE)) - TO_CHAR(SUBSTR(MEM_BIR,1,4)), 1, 1) , '6', '60대')) / COUNT(*) * 100) AS CALC_COUNT6
+		  FROM  TB_MEMBER
+	</select>
+	
+	<select id="selecteMemberRouteStatic" resultType="kr.co.scm.admin.vo.MemberStaticVO">
+		SELECT  ROUND(COUNT(CASE WHEN MEM_ROUTE = 'SNS' THEN 'SNS' END) / COUNT(*) * 100) AS SNS_COUNT
+			 ,  ROUND(COUNT(CASE WHEN MEM_ROUTE = '광고' THEN '광고' END) / COUNT(*) * 100) AS ADVER_COUNT
+             ,  ROUND(COUNT(CASE WHEN MEM_ROUTE = '지인' THEN '지인' END) / COUNT(*) * 100) AS FRIEND_COUNT
+             ,  ROUND(COUNT(CASE WHEN MEM_ROUTE = '기타' THEN '기타' END) / COUNT(*) * 100) AS ETC_COUNT
+		  FROM  TB_MEMBER
+	</select>
+	
+</mapper>
+
+
+
+

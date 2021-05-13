@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.board.dao.BoardMapper">
+
+	<sql id="search_egov">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 't'.toString()">
+					AND A.FREE_TITLE like '%'||#{searchKeyword}||'%'	
+				</when>
+				<when test="searchCondition == 'w'.toString()">
+					AND A.MEM_ID like '%'||#{searchKeyword}||'%'			
+				</when>
+				<when test="searchCondition == 'c'.toString()">
+					AND A.FREE_CONTENT like '%'||#{searchKeyword}||'%'		
+				</when>
+				<when test="searchCondition == 'tc'.toString()">
+					AND (
+						A.FREE_TITLE like '%'||#{searchKeyword}||'%'
+										OR
+						A.FREE_CONTENT like '%'||#{searchKeyword}||'%'
+					)
+				</when>
+				<when test="searchCondition == 'tcw'.toString()">
+					AND (
+							A.FREE_TITLE like '%'||#{searchKeyword}||'%'
+											OR
+							A.MEM_ID like '%'||#{searchKeyword}||'%'
+											OR
+							A.FREE_CONTENT like '%'||#{searchKeyword}||'%'						
+						)	
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="getBoardList" parameterType="kr.co.scm.board.vo.BoardVO" resultType="kr.co.scm.board.vo.BoardVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  		
+		SELECT  A.FREE_NO
+			 ,  A.FREE_TITLE
+			 ,  A.FREE_CONTENT
+			 ,  A.FREE_REG_DATE
+			 ,  A.FREE_CNT
+			 ,  A.MEM_ID
+             ,  NVL(B.REPLY_CNT,0)  AS REPLY_CNT
+		  FROM  TB_BOARD_FREE A
+          LEFT  JOIN  (
+                      SELECT  FREE_NO
+                           ,  COUNT(*) AS REPLY_CNT
+                        FROM  TB_BOARD_FREE_REPLY
+                       GROUP  BY FREE_NO
+                      ) B
+            ON  A.FREE_NO = B.FREE_NO
+		 WHERE  A.FREE_NO IS NOT NULL 	
+		 <include refid="search_egov"/>
+		 ORDER  BY A.FREE_REG_DATE DESC
+		
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="getBoardListCount" resultType="int" parameterType="kr.co.scm.board.vo.BoardVO">
+		SELECT  COUNT(*)
+		  FROM  TB_BOARD_FREE A
+		 WHERE  FREE_NO IS NOT NULL
+		 <include refid="search_egov"/>
+	</select>
+	
+	<update id="increaseViewCount" parameterType="int">
+		UPDATE  TB_BOARD_FREE
+		   SET  FREE_CNT = FREE_CNT + 1
+		 WHERE  FREE_NO = #{freeNo}
+	</update>
+	
+	<update id="regist">
+		<selectKey order="BEFORE" resultType="int" keyProperty="freeNo">
+			SELECT BOARD_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  TB_BOARD_FREE 
+		     (  FREE_NO
+			 ,  FREE_TITLE
+			 ,  FREE_CONTENT
+			 ,  FREE_REG_DATE
+			 ,  FREE_CNT
+			 ,  MEM_ID
+			 )  
+		VALUES  
+			 (  #{freeNo}
+			 ,  #{freeTitle}
+			 ,  #{freeContent}
+			 ,  SYSDATE
+			 ,  0
+			 ,  #{memId}
+			 )	
+	</update>
+	
+	<select id="detail" resultType="kr.co.scm.board.vo.BoardVO">
+		SELECT  FREE_NO
+			 ,  FREE_TITLE
+			 ,  FREE_CONTENT
+			 ,  FREE_REG_DATE
+			 ,  FREE_CNT
+			 ,  MEM_ID
+             , (
+                SELECT  COUNT(*)  
+                  FROM  TB_BOARD_FREE A, TB_BOARD_FREE_REPLY B 
+                 WHERE  A.FREE_NO = B.FREE_NO 
+                   AND  A.FREE_NO = #{freeNo}
+               ) AS REPLY_CNT
+         FROM  TB_BOARD_FREE
+        WHERE  FREE_NO = #{freeNo}
+	</select>
+	
+	<update id="modify">
+		UPDATE  TB_BOARD_FREE 
+		   SET  FREE_TITLE = #{freeTitle},
+			    FREE_CONTENT = #{freeContent}
+		 WHERE  FREE_NO = #{freeNo}
+	</update>
+	
+	<delete id="remove" parameterType="int">
+		DELETE  FROM TB_BOARD_FREE
+		 WHERE  FREE_NO = #{freeNo}
+	</delete>
+	
+	<select id="selectBoardScrapCount" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_FREE_SCRAP A, TB_BOARD_FREE B
+		 WHERE  A.FREE_NO = B.FREE_NO
+           AND  A.FREE_NO = #{freeNo}
+           AND  A.MEM_ID = #{memId}
+	</select>
+	
+	<update id="insertBoardScrap">
+		INSERT 
+		  INTO  TB_FREE_SCRAP
+			 (  FREE_NO
+			 ,  MEM_ID
+			 )
+		VALUES
+			 (
+				#{freeNo}
+			 ,  #{memId}
+			 )
+	</update>
+	
+	<delete id="removeBoardScrap">
+		DELETE  FROM  TB_FREE_SCRAP
+		 WHERE  FREE_NO = #{freeNo}
+ 		   AND  MEM_ID = #{memId}
+	</delete>
+</mapper>

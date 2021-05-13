@@ -1,0 +1,101 @@
+<!DOCTYPE tiles-definitions PUBLIC 
+"-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" 
+"http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+
+<tiles-definitions>
+	<!-- 회원 화면 -->
+	<definition name="sc_member" template="/WEB-INF/decorators/member_main_decorator.jsp"/>
+	
+	<definition name="*/*.member" extends="sc_member">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}.jsp" />
+	</definition>
+	<definition name="*/*/*.member" extends="sc_member">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}.jsp" />
+	</definition>
+	<definition name="*/*/*/*.member" extends="sc_member">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp" />
+	</definition>
+
+
+	<!-- 메뉴 미표시 -->
+	<definition name="open" template="/WEB-INF/decorators/open_decorator.jsp">
+		<put-attribute name="header" value="/WEB-INF/include/header.jsp"/>
+		<put-attribute name="footer" value="/WEB-INF/include/footer.jsp"/>
+	</definition>
+	
+	<definition name="*.open" extends="open">
+		<put-attribute name="section" value="/WEB-INF/views/{1}.jsp" />
+	</definition>
+	
+	<definition name="*/*.open" extends="open">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*.open" extends="open">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}.jsp" />
+	</definition>
+	<definition name="*/*/*/*.open" extends="open">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp" />
+	</definition>
+
+
+
+
+	<!-- 가맹점 화면 -->
+	<definition name="sc_store" template="/WEB-INF/decorators/store_main_decorator.jsp"/>
+	
+
+	<definition name="*/*.store" extends="sc_store">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*.store" extends="sc_store">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*/*.store" extends="sc_store">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp" />
+	</definition>
+	
+	
+	
+	<!-- 본사 화면 -->
+	<definition name="sc_admin" template="/WEB-INF/decorators/admin_main_decorator.jsp"/>
+
+	<definition name="*/*.admin" extends="sc_admin">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*.admin" extends="sc_admin">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*/*.admin" extends="sc_admin">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp" />
+	</definition>
+
+
+	<!-- 키오스크 화면 -->
+	<definition name="sc_kiosk" template="/WEB-INF/decorators/kiosk_main_decorator.jsp"/>
+
+	<definition name="*.kiosk" extends="sc_kiosk">
+		<put-attribute name="div" value="/WEB-INF/views/{1}.jsp" />
+	</definition>
+	
+	<definition name="*/*.kiosk" extends="sc_kiosk">
+		<put-attribute name="div" value="/WEB-INF/views/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*.kiosk" extends="sc_kiosk">
+		<put-attribute name="div" value="/WEB-INF/views/{1}/{2}/{3}.jsp" />
+	</definition>
+	
+	<definition name="*/*/*/*.kiosk" extends="sc_kiosk">
+		<put-attribute name="section" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp" />
+	</definition>
+
+
+
+	
+	
+</tiles-definitions>

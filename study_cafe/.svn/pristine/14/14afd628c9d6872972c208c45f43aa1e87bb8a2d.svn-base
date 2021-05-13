@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.admin.dao.NotitalkMapper">
+
+	<insert id="insertNotitalk">
+		<selectKey order="BEFORE" resultType="int" keyProperty="notitalkNo"> 
+			SELECT NOTITALK_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_NOTITALK 
+		     (  
+		        NOTITALK_NO
+		     ,  NOTITALK_REG_DATE
+		     ,  ADMIN_ID
+		     ,  NOTITALK_CONTENT
+		     ,  NOTITALK_TITLE
+			 ) 
+		VALUES 
+			 (
+			    #{notitalkNo}
+		     ,  SYSDATE
+		     ,  #{adminId}
+		     ,  #{notitalkContent}
+		     ,  #{notitalkTitle}
+			 )
+	</insert>
+
+
+	<select id="getNotitalkList" resultType="kr.co.scm.admin.vo.NotitalkVO">
+		SELECT  NOTITALK_NO
+		     ,  NOTITALK_REG_DATE
+		     ,  ADMIN_ID
+		     ,  NOTITALK_CONTENT
+		     ,  NOTITALK_TITLE
+		  FROM  TB_NOTITALK
+		 ORDER  BY NOTITALK_REG_DATE DESC
+		
+	</select>
+	
+	<select id="getNotitalkByNo" resultType="kr.co.scm.admin.vo.NotitalkVO">
+		SELECT  NOTITALK_NO 
+		     ,  NOTITALK_REG_DATE
+		     ,  ADMIN_ID
+		     ,  NOTITALK_CONTENT
+		     ,  NOTITALK_TITLE
+		  FROM  TB_NOTITALK
+		 WHERE  1=1
+		   AND  NOTITALK_NO = #{notitalkNo}
+	</select>
+
+</mapper>

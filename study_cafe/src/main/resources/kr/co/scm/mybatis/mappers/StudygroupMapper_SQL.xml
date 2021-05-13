@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.board.dao.StudygroupMapper">
+	
+	<sql id="search_study">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 't'.toString()">
+					AND A.STUDYGROUP_TITLE like '%'||#{searchKeyword}||'%'	
+				</when>
+				<when test="searchCondition == 'w'.toString()">
+					AND A.MEM_ID like '%'||#{searchKeyword}||'%'			
+				</when>
+				<when test="searchCondition == 'c'.toString()">
+					AND A.STUDYGROUP_CONTENT like '%'||#{searchKeyword}||'%'		
+				</when>
+				<when test="searchCondition == 'tc'.toString()">
+					AND (
+						A.STUDYGROUP_TITLE like '%'||#{searchKeyword}||'%'
+										OR
+						A.STUDYGROUP_CONTENT like '%'||#{searchKeyword}||'%'
+					)
+				</when>
+				<when test="searchCondition == 'tcw'.toString()">
+					AND (
+							A.STUDYGROUP_TITLE like '%'||#{searchKeyword}||'%'
+											OR
+							A.MEM_ID like '%'||#{searchKeyword}||'%'
+											OR
+							A.STUDYGROUP_CONTENT like '%'||#{searchKeyword}||'%'						
+						)	
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<select id="studygroupPagingList" resultType="kr.co.scm.board.vo.StudygroupVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		
+		SELECT  A.STUDYGROUP_NO
+			 ,  A.STUDYGROUP_TITLE
+			 ,  A.STUDYGROUP_CONTENT
+			 ,  A.STUDYGROUP_REG_DATE
+			 ,  A.STUDYGROUP_CNT
+			 ,  A.MEM_ID
+			 ,  A.RECRUIT_STATUS
+			 ,  A.STUDYGROUP_END
+			 ,  NVL(B.REPLY_CNT,0)  AS REPLY_CNT
+		  FROM  TB_BOARD_STUDYGROUP A
+          LEFT  JOIN  (
+	                  SELECT  STUDYGROUP_NO
+	                       ,  COUNT(*) AS REPLY_CNT
+	                    FROM  TB_BOARD_STUDYGROUP_REPLY
+	                   GROUP  BY STUDYGROUP_NO
+	                  ) B
+	        ON  A.STUDYGROUP_NO = B.STUDYGROUP_NO
+		 WHERE  A.STUDYGROUP_NO IS NOT NULL  			  	
+		 <include refid="search_study" />
+		 ORDER  BY STUDYGROUP_NO DESC
+		
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="searchStudygroupPagingListCount" resultType="int">
+		SELECT  COUNT(*) TOTALCOUNT
+		  FROM  TB_BOARD_STUDYGROUP A
+		 WHERE  STUDYGROUP_NO IS NOT NULL  			  	
+		<include refid="search_study" />
+	</select>
+		
+<!-- 	<select id="selectStgList" resultType="kr.co.scm.board.vo.StudygroupVO"> -->
+		
+<!-- 			select * from tb_board_studygroup -->
+<!-- 	</select> -->
+	
+	<select id="getRecruitTime" resultType="kr.co.scm.board.vo.StudygroupVO">
+		SELECT  STUDYGROUP_END 
+		  FROM  TB_BOARD_STUDYGROUP
+		 WHERE  RECRUIT_STATUS	=  'Y' 
+	</select>
+	
+	<update id="chRcStatus">
+		UPDATE  TB_BOARD_STUDYGROUP
+		   SET  RECRUIT_STATUS	=  'N'
+	</update>
+	
+	<insert id="insertSgb" parameterType="kr.co.scm.board.vo.StudygroupVO">
+		<selectKey order="BEFORE" resultType="int" keyProperty="studygroupNo">
+			SELECT SGB_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_BOARD_STUDYGROUP
+			 (  STUDYGROUP_NO
+			 ,  STUDYGROUP_TITLE
+			 ,  STUDYGROUP_CONTENT
+			 ,  STUDYGROUP_REG_DATE
+			 ,  STUDYGROUP_CNT
+			 ,  MEM_ID
+			 ,  STUDYGROUP_END
+			 ,  RECRUIT_STATUS
+			 )
+		values
+			 (  #{studygroupNo}
+			 ,  #{studygroupTitle}
+			 ,  #{studygroupContent}
+			 ,  SYSDATE
+			 ,  0 
+			 ,  #{memId}
+			 ,  #{studygroupEnd}
+			 ,  'Y'
+			 )	
+	</insert>
+	
+	<select id="getStudygroupNo"  resultType="kr.co.scm.board.vo.StudygroupVO">
+		SELECT  * 
+		  FROM  TB_BOARD_STUDYGROUP
+		 WHERE  STUDYGROUP_NO	=  #{studygroupNo}
+	</select>	
+	<update id="increaseViewCnt">
+		UPDATE  TB_BOARD_STUDYGROUP
+		   SET  STUDYGROUP_CNT  =  STUDYGROUP_CNT + 1 
+		 WHERE  STUDYGROUP_NO	=  #{studygroupNo}
+	</update>
+	
+	<select id="selectSearchStudyList" resultType="kr.co.scm.board.vo.StudygroupVO">
+		SELECT  * 
+		  FROM  TB_BOARD_STUDYGROUP A
+		 WHERE  STUDYGROUP_NO IS NOT NULL  			  	
+		<include refid="search_study" />
+		 ORDER  BY STUDYGROUP_REG_DATE DESC
+	</select>
+	
+	<select id="selectStudyCriteriaTotalCount" resultType="int">
+		SELECT  COUNT(*)
+		  FROM  TB_BOARD_STUDYGROUP A
+		 WHERE  STUDYGROUP_NO IS NOT NULL  			  	
+		<include refid="search_study" />
+		 ORDER  BY STUDYGROUP_REG_DATE DESC
+	</select>
+	
+	<update id="updateModify" parameterType="kr.co.scm.board.vo.StudygroupVO">
+		UPDATE  TB_BOARD_STUDYGROUP
+		   SET  STUDYGROUP_TITLE = #{studygroupTitle}, studygroup_content=#{studygroupContent} 
+		 WHERE  STUDYGROUP_NO=#{studygroupNo}
+	</update>
+	
+	<delete id="deleteStudygroup" parameterType="int">
+		DELETE 
+		  FROM  TB_BOARD_STUDYGROUP
+ 		 WHERE  STUDYGROUP_NO  = #{studygroupNo}
+	</delete>
+	
+	<select id="selectStudyGroupScrapCount" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_STUDYGROUP_SCRAP A, TB_BOARD_STUDYGROUP B
+		 WHERE  A.STUDYGROUP_NO = B.STUDYGROUP_NO
+           AND  A.STUDYGROUP_NO = #{studygroupNo}
+           AND  A.MEM_ID = #{memId}
+	</select>
+	
+	<update id="insertStudyGroupScrap">
+		INSERT 
+		  INTO  TB_STUDYGROUP_SCRAP
+			 (  STUDYGROUP_NO
+			 ,  MEM_ID
+			 )
+		VALUES
+			 (
+				#{studygroupNo}
+			 ,  #{memId}
+			 )
+	</update>
+	
+	<delete id="removeStudyGroupScrap">
+		DELETE  FROM  TB_STUDYGROUP_SCRAP
+		 WHERE  STUDYGROUP_NO = #{studygroupNo}
+ 		   AND  MEM_ID = #{memId}
+	</delete>
+</mapper>

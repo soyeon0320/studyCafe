@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.admin.dao.ContractMapper">
+
+	<sql id="search_egov">
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchCondition == 'ownerId'.toString()">
+					AND A.OWNER_ID like '%'||#{searchKeyword}||'%'	
+				</when>
+				<when test="searchCondition == 'storeNm'.toString()">
+					AND C.STORE_NAME like '%'||#{searchKeyword}||'%'			
+				</when>
+				<when test="searchCondition == 'storeCode'.toString()">
+					AND A.STORE_CODE like '%'||#{searchKeyword}||'%'		
+				</when>
+			</choose>
+		</if>
+	</sql>
+
+	<select id="getContractList" parameterType="kr.co.scm.admin.vo.ContractViewVO" resultType="kr.co.scm.admin.vo.ContractViewVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  		
+		SELECT  A.STORE_CODE  
+			 ,  A.OWNER_ID
+			 ,  A.AFFILIATE_REG_START_DATE
+			 ,  A.AFFILIATE_REG_END_DATE
+		     ,  B.CONTRACT_STATUS
+		     ,  B.CONTRACT_PERMIT_DATE
+			 ,  C.STORE_NAME
+             ,  A.CALC_DATE
+		  FROM (
+			     SELECT  STORE_CODE
+			     	  ,  OWNER_ID
+			     	  ,  AFFILIATE_REG_START_DATE
+			     	  ,  AFFILIATE_REG_END_DATE
+               		  ,  ROUND(TO_DATE(TO_CHAR(AFFILIATE_REG_END_DATE)) - (SELECT SYSDATE FROM DUAL)) AS CALC_DATE
+			       FROM  TB_OWNER
+			   ) A, TB_CONTRACT_AGREEMENT B, TB_STORE C
+         WHERE  A.OWNER_ID = B.OWNER_ID
+           AND  C.STORE_CODE = B.STORE_CODE
+            <if test="contractStatus != null and contractStatus == 'CS01'">
+           		<include refid="search_egov"/>
+           		ORDER  BY B.CONTRACT_STATUS ASC
+           </if>
+          <if test="contractStatus != null and contractStatus != 'CS01' and contractStatus != 'CS05'">
+	           AND  B.CONTRACT_STATUS = #{contractStatus}
+		       <include refid="search_egov"/>
+		       ORDER  BY B.CONTRACT_STATUS ASC
+          </if>
+           <if test="contractStatus != null and contractStatus != 'CS01' and contractStatus == 'CS05'">
+           <![CDATA[
+           		AND  A.CALC_DATE >= 0
+				AND  A.CALC_DATE <= 180
+			]]>
+				AND  B.CONTRACT_STATUS = 'CS03'
+				<include refid="search_egov"/>
+			  ORDER  BY A.CALC_DATE ASC
+           </if>
+		  
+		  <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>		
+	</select>
+	
+	<select id="getContractListCount" parameterType="kr.co.scm.admin.vo.ContractViewVO" resultType="int">
+		SELECT  COUNT(*) 
+		  FROM  TB_OWNER A, TB_CONTRACT_AGREEMENT B, TB_STORE C
+		 WHERE  A.OWNER_ID = B.OWNER_ID
+           AND  C.STORE_CODE = B.STORE_CODE
+           <if test="contractStatus != null and contractStatus == 'CS01'">
+           		<include refid="search_egov"/>
+           		ORDER  BY B.CONTRACT_STATUS ASC
+           </if>
+         <if test="contractStatus != null and contractStatus != 'CS01' and contractStatus != 'CS05'">
+           		AND  B.CONTRACT_STATUS = #{contractStatus}
+           		<include refid="search_egov"/>
+           		ORDER  BY B.CONTRACT_STATUS ASC
+           </if>
+           <if test="contractStatus != null and contractStatus != 'CS01' and contractStatus == 'CS05'">
+           <![CDATA[
+           		AND  ROUND(TO_DATE(TO_CHAR(A.AFFILIATE_REG_END_DATE)) - (SELECT SYSDATE FROM DUAL)) >= 0
+				AND  ROUND(TO_DATE(TO_CHAR(A.AFFILIATE_REG_END_DATE)) - (SELECT SYSDATE FROM DUAL)) <= 180
+			]]>
+				AND  B.CONTRACT_STATUS = 'CS03'
+				<include refid="search_egov"/>
+			  ORDER  BY ROUND(TO_DATE(TO_CHAR(A.AFFILIATE_REG_END_DATE)) - (SELECT SYSDATE FROM DUAL)) ASC
+           </if>
+	</select>
+	
+	<select id="detail" parameterType="str" resultType="kr.co.scm.admin.vo.ContractViewVO">
+		SELECT  A.OWNER_ID
+			 ,  A.OWNER_NAME
+			 ,  A.BUSINESS_NUMBER
+			 ,  A.OWNER_TEL
+			 ,  A.OWNER_EMAIL
+			 ,  A.AFFILIATE_REG_START_DATE
+			 ,  A.AFFILIATE_REG_END_DATE
+			 ,  B.CONTRACT_STATUS
+			 ,  B.STORE_CODE
+			 ,  B.CONTRACT_REG_DATE
+			 ,  B.CONTRACT_PERMIT_DATE
+			 ,  C.STORE_NAME
+			 ,  C.STORE_ADDR
+			 ,  C.STORE_PHONE
+		  FROM  TB_OWNER A, TB_CONTRACT_AGREEMENT B, TB_STORE C
+		 WHERE  A.OWNER_ID = B.OWNER_ID
+		   AND  B.STORE_CODE = C.STORE_CODE
+		   AND  B.STORE_CODE = #{storeCode}
+	</select>
+	
+	<update id="registOwner" parameterType="kr.co.scm.store.vo.OwnerVO">
+		INSERT 
+		  INTO  TB_OWNER 
+			 (
+		        OWNER_ID
+		     ,  OWNER_NAME
+		     ,  BUSINESS_NUMBER
+		     ,  OWNER_TEL
+		     ,  AFFILIATE_REG_START_DATE
+		     ,  AFFILIATE_REG_END_DATE
+		     ,  OWNER_CONTRACT_STATUS
+		     ,  OWNER_PASS
+		     ,  OWNER_EMAIL
+		     ,  STORE_CODE
+			 )
+		VALUES
+			(
+		       #{ownerId}
+		    ,  #{ownerName}
+		    ,  #{businessNumber}
+		    ,  #{ownerTel}
+		    ,  #{affiliateRegStartDate}
+		    ,  #{affiliateRegEndDate}
+		    ,  'N'
+		    ,  #{ownerPass}
+		    ,  #{ownerEmail}
+		    ,  #{storeCode}
+		    )
+	</update>
+	
+	<update id="registContract">
+		INSERT 
+		  INTO TB_CONTRACT_AGREEMENT
+			 (
+			     OWNER_ID
+			 ,   STORE_CODE
+			 ,   CONTRACT_REG_DATE
+			 ,	 CONTRACT_STATUS
+			 )
+		VALUES
+			 (
+		        #{ownerId}
+		     ,  #{storeCode}
+		     ,  SYSDATE
+		     ,  'CS02'
+			 )
+	</update>
+	
+	<update id="registContractStatus">
+		UPDATE  TB_STORE
+		   SET  STORE_CONTRACT_STATUS = 'CS02'
+		 WHERE  STORE_CODE = #{storeCode}
+	</update>
+	
+	<update id="updateApprovalOwner">
+		UPDATE  TB_OWNER
+		   SET  OWNER_CONTRACT_STATUS = 'Y'
+		 WHERE  STORE_CODE = #{storeCode}
+	</update>
+	
+	<update id="updateApprovalContract">
+		UPDATE  TB_CONTRACT_AGREEMENT
+		   SET  CONTRACT_STATUS = 'CS03',
+		   		CONTRACT_PERMIT_DATE = SYSDATE
+		 WHERE  STORE_CODE = #{storeCode}
+	</update>
+	
+	<update id="updateApprovalStore">
+		UPDATE  TB_STORE
+		   SET  STORE_CONTRACT_STATUS = 'CS03'
+		 WHERE  STORE_CODE = #{storeCode}
+	</update>
+	
+	<update id="updateExtendOwner">
+		UPDATE  TB_OWNER
+		   SET  AFFILIATE_REG_END_DATE = #{affiliateRegEndDate}
+		 WHERE  STORE_CODE = #{storeCode}
+	</update>
+	
+	<select id="getStatic" resultType="kr.co.scm.admin.vo.ContractStaticVO" parameterType="kr.co.scm.admin.vo.ContractStaticVO">
+		SELECT 
+		     (  SELECT  COUNT(*)
+		          FROM  TB_CONTRACT_AGREEMENT
+		         WHERE  CONTRACT_STATUS = 'CS02' 
+		     )  AS CS02_COUNT
+		   , ( 
+		         SELECT  COUNT(*)
+		           FROM  TB_CONTRACT_AGREEMENT
+		          WHERE  CONTRACT_STATUS = 'CS03'
+		     )  AS CS03_COUNT
+		   , ( 
+		         SELECT  COUNT(*)
+		           FROM  TB_CONTRACT_AGREEMENT
+		          WHERE  CONTRACT_STATUS = 'CS04' 
+		     )  AS CS04_COUNT
+		    ,   (
+		         SELECT  COUNT(*)
+		           FROM  TB_OWNER A, TB_CONTRACT_AGREEMENT B
+		          WHERE  AFFILIATE_REG_END_DATE - (SELECT SYSDATE FROM DUAL)  <![CDATA[<=]]> 180 AND  AFFILIATE_REG_END_DATE - (SELECT SYSDATE FROM DUAL) >= 0
+                    AND  A.STORE_CODE = B.STORE_CODE
+		            AND  B.CONTRACT_STATUS = 'CS03'
+		        ) AS DEADLINE_COUNT
+          FROM  DUAL
+	</select>
+	
+</mapper>

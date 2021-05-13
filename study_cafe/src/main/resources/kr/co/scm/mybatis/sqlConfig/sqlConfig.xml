@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+	
+	<typeAliases>
+		<typeAlias type="java.lang.String" alias="str" />
+		<typeAlias type="java.lang.Integer" alias="int" />
+		
+		<typeAlias type="kr.co.scm.common.vo.MenuVO" alias="menu"/>	
+		<typeAlias type="kr.co.scm.command.SearchCriteria" alias="cri"/>
+
+		<typeAlias type="kr.co.scm.board.vo.VocVO" alias="voc"/>	
+		<typeAlias type="kr.co.scm.board.vo.InfoVO" alias="info"/>	
+		<typeAlias type="kr.co.scm.board.vo.BoardVO" alias="board"/>
+<!-- 		<typeAlias type="kr.co.scm.board.vo.StudygroupVO" alias="sgv"/> -->
+		<typeAlias type="kr.co.scm.board.vo.NoticeVO" alias="notice"/>
+		
+		<typeAlias type="kr.co.scm.store.vo.OwnerVO" alias="owner"/>
+		<typeAlias type="kr.co.scm.store.vo.StoreVO" alias="store"/>
+		<typeAlias type="kr.co.scm.store.vo.SeatVO" alias="seat"/>
+		<typeAlias type="kr.co.scm.store.vo.StockVO" alias="stock"/>
+		
+		<typeAlias type="kr.co.scm.user.vo.MemberVO" alias="member"/>
+		<typeAlias type="kr.co.scm.order.vo.LProdVO" alias="lprod"/>
+		<typeAlias type="kr.co.scm.order.vo.ProductVO" alias="product"/>
+		<typeAlias type="kr.co.scm.order.vo.ProdEquipVO" alias="prodEquip"/>
+		<typeAlias type="kr.co.scm.order.vo.OrderVO" alias="order"/>
+	
+		<typeAlias type="kr.co.scm.order.vo.OrderDetailVO" alias="orderDetail"/>
+		<typeAlias type="kr.co.scm.supply.vo.OrderListViewVO" alias="orderView"/>
+		<typeAlias type="kr.co.scm.order.vo.CartVO" alias="cart"/>
+		<typeAlias type="kr.co.scm.common.vo.AddrVO" alias="addr"/>
+		
+		<typeAlias type="kr.co.scm.store.vo.StudyRoomVO" alias="studyRoom"/>
+		<typeAlias type="kr.co.scm.rent.vo.TimeTableVO" alias="timeTable"/>
+		
+		
+		<typeAlias type="kr.co.scm.common.vo.CodeVO" alias="code"/>
+		<typeAlias type="kr.co.scm.egov.vo.CmmnCodeVO" alias="cmmnCode"/>
+		
+		
+	</typeAliases>
+
+
+</configuration>
+
+
+
+
+
+
+
+

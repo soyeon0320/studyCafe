@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d %5p [%c] %m%n" />
+        </Console>
+		<File name="file" fileName="d://log//project.log" append="true">
+			<PatternLayout pattern="%d %5p [%c] %m%n"/>
+		</File>
+		<File name="file2" fileName="d://log//springframework.log" append="true">
+			<PatternLayout pattern="%d %5p [%c] %m%n"/>
+		</File>
+		<File name="file3" fileName="d://log//sqlLog.log" append="true">
+			<PatternLayout pattern="%d %5p [%c] %m%n"/>
+		</File>
+		<File name="file4" fileName="d://log//all.log" append="true">
+			<PatternLayout pattern="%d %5p [%c] %m%n"/>
+		</File>
+    </Appenders>
+	
+    <Loggers>
+        <Logger name="jdbc.sqlonly" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file3" />
+        </Logger>
+        <Logger name="jdbc.resultsettable" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file3" />
+        </Logger>
+        <Logger name="kr.co.scm" level="DEBUG" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file2" />
+        </Logger>
+          <!-- log SQL with timing information, post execution -->
+<!--     	<Logger name="jdbc.sqltiming" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
+        </Logger> -->
+  <!--       
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>
+   -->      
+<!--      <Root level="INFO">
+            <AppenderRef ref="console" />
+             <AppenderRef ref="file4" />
+        </Root> -->
+    </Loggers>
+    <!--  -->
+</Configuration>

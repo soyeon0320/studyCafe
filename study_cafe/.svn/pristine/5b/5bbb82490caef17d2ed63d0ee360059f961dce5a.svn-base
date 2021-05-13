@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.scm.rent.dao.TicketMapper">
+
+
+	<select id="countTotalRemainTime" resultType="int" parameterType="kr.co.scm.user.vo.MemberVO">
+		SELECT  NVL(MAX(SUM(TICKET_TIME_REMAIN)),0) TICKET_TIME_REMAIN
+		  FROM  TB_TICKET_BUY
+		 WHERE  MEM_ID = #{memId}
+		 <![CDATA[
+		   AND  SYSDATE <= TICKET_EXPIRE_DATE
+		 ]]>
+		 GROUP  BY MEM_ID
+	
+	</select>
+
+	<select id="getTicket" resultType="kr.co.scm.rent.vo.TicketVO">
+		SELECT  TICKET_NO
+		     ,  TICKET_PRICE
+		     ,  TICKET_NAME
+		     ,  TICKET_CODE
+		     ,  TICKET_STATUS
+		     ,  TICKET_KIND
+		     ,  TICKET_TIME
+		     ,  TICKET_TERM
+		  FROM  TB_TICKET
+		 WHERE  TICKET_STATUS = 'Y'
+		 ORDER  BY TICKET_PRICE 
+	</select>
+
+	<update id="buyTicket" parameterType="kr.co.scm.rent.vo.TicketBuyVO">
+		<selectKey order="BEFORE" resultType="int" keyProperty="ticketBuyNo">
+			SELECT TICKET_BUY_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT 
+		  INTO  TB_TICKET_BUY 
+		     (  TICKET_BUY_DATE
+			 ,  TICKET_BUY_NO
+			 ,  TICKET_NO
+			 ,  MEM_ID
+			 ,  TICKET_TIME_REMAIN
+			 ,  TICKET_EXPIRE_DATE
+			 ) 
+		VALUES 
+			 (  SYSDATE
+		     ,  #{ticketBuyNo}
+		     ,  #{ticketNo}
+		     ,  #{memId}
+		     ,  (  SELECT  TICKET_TIME 
+		     		 FROM  TB_TICKET 
+		     		WHERE  TICKET_NO  =  #{ticketNo}
+		     	)
+		     ,  ADD_MONTHS ( SYSDATE, 6 ) - 1
+)
+	</update>
+	
+	<select id="getFirstTicket" parameterType="kr.co.scm.user.vo.MemberVO" resultType="int">
+		SELECT  D2.TICKET_TIME_REMAIN
+		  FROM  
+		     (
+		  		SELECT  ROWNUM, D1.*
+				  FROM
+		             ( 	
+		                SELECT  TICKET_BUY_DATE
+						     ,  TICKET_BUY_NO
+						     ,  TICKET_NO
+						     ,  MEM_ID
+						     ,  TICKET_TIME_REMAIN
+						     ,  TICKET_EXPIRE_DATE
+						  FROM  TB_TICKET_BUY
+						 WHERE  MEM_ID = #{memId}
+						   AND  TICKET_TIME_REMAIN != 0
+							<![CDATA[
+						   AND  SYSDATE <= TICKET_EXPIRE_DATE
+							]]>
+						 ORDER  BY TICKET_BUY_DATE
+					  )  D1
+			)  D2
+		WHERE  ROWNUM = 1
+	
+	</select>
+	
+	<update id="useTicket" parameterType="kr.co.scm.rent.vo.RentSeatVO">
+		UPDATE  TB_TICKET_BUY
+		   SET  TICKET_TIME_REMAIN = TICKET_TIME_REMAIN -  #{seatTotalTime}
+		 WHERE  TICKET_BUY_NO  =
+						    (  
+						       SELECT  D2.TICKET_BUY_NO
+				        		 FROM  
+				        		    (  SELECT  ROWNUM, D1.*
+				        				 FROM  
+				        				    (  SELECT  TICKET_BUY_DATE
+										            ,  TICKET_BUY_NO
+										            ,  TICKET_NO
+										            ,  MEM_ID
+										            ,  TICKET_TIME_REMAIN
+										            ,  TICKET_EXPIRE_DATE
+				            					 FROM  TB_TICKET_BUY
+									            WHERE  MEM_ID = #{memId}
+											      AND  TICKET_TIME_REMAIN != 0
+											   	  <![CDATA[
+											      AND  SYSDATE <= TICKET_EXPIRE_DATE
+												  ]]>
+											 	ORDER  BY TICKET_BUY_DATE
+										    )  D1
+										WHERE  ROWNUM = 1
+								 	)  D2
+							)         
+										
+	</update>
+	
+	<update id="useAllTicket" parameterType="kr.co.scm.user.vo.MemberVO">
+		UPDATE  TB_TICKET_BUY
+    	   SET  TICKET_TIME_REMAIN = 0
+		 WHERE  MEM_ID = #{memId}
+	
+	</update>
+	
+	
+	
+	<sql id="search_egov">
+		<if test="searchCondition != 'syn'.toString()">
+			<choose>
+				<when test="searchCondition == 'sy'.toString()">
+					AND TICKET_STATUS = 'Y'		
+				</when>
+				<when test="searchCondition == 'sn'.toString()">
+					AND TICKET_STATUS = 'N'			
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	
+	
+	
+	
+	<select id="selectTicketPagingList" resultType="kr.co.scm.rent.vo.TicketVO">
+		SELECT  D3.*
+		  FROM  (
+		SELECT  D2.*
+		  FROM  (
+		SELECT  ROWNUM RNUM, D1.*
+		  FROM  (
+		  
+		SELECT	TICKET_NO
+			 ,	TICKET_PRICE
+			 ,	TICKET_NAME
+			 ,	TICKET_CODE
+			 ,	TICKET_STATUS
+			 ,	TICKET_KIND
+			 ,	TICKET_TIME
+			 ,	TICKET_TERM
+		  FROM  TB_TICKET
+		 WHERE  1 = 1  			  	
+		<include refid="search_egov" />
+		 ORDER  BY TICKET_NO DESC
+		 
+		 <![CDATA[
+			    ) D1
+			    ) D2
+		 WHERE  RNUM  > #{firstIndex}
+			    ) D3
+		 WHERE  ROWNUM <= #{recordCountPerPage}
+		   ]]>
+	</select>
+	
+	<select id="selectTicketPagingListCount" resultType="int">
+		SELECT	COUNT(*) totcnt
+	      FROM	TB_TICKET
+		 WHERE	ticket_no is not null  			  	
+		<include refid="search_egov" />		
+	</select>
+	
+	<insert id="insertTicket">
+		<selectKey order="BEFORE" resultType="int" keyProperty="ticketNo">
+			SELECT TICKET_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT 
+		  INTO  TB_TICKET 
+		     (  TICKET_NO
+	   		 ,	TICKET_PRICE
+	   		 ,	TICKET_NAME
+	   		 ,	TICKET_CODE
+	   		 ,	TICKET_STATUS
+	   		 ,	TICKET_KIND
+	    	 ,	TICKET_TIME
+	   		 ,	TICKET_TERM
+			 ) 
+	    VALUES 
+	         (	#{ticketNo}
+	   		 ,	#{ticketPrice}
+	   		 ,	#{ticketName}
+	   		 ,	'ticket'||#{ticketNo}
+	   	 	 ,	#{ticketStatus}
+	   		 ,	#{ticketKind}
+	   		 ,	#{ticketTime}
+	   		 ,	#{ticketTerm}
+			 )
+	</insert>
+	
+	<select id="selectTicketByTicketNo" resultType="kr.co.scm.rent.vo.TicketVO">
+		SELECT  tICKET_NO
+		     ,	TICKET_PRICE
+		     ,	TICKET_NAME
+		     ,	TICKET_CODE
+		     ,	TICKET_STATUS
+		     ,	TICKET_KIND
+		     ,	TICKET_TIME
+		     ,	TICKET_TERM
+		  FROM  TB_TICKET
+		 WHERE  TICKET_NO = #{ticketNo} 
+	</select>
+	
+	<update id="updateTicket">
+		UPDATE  TB_TICKET
+	       SET  TICKET_NAME   = #{ticketName}	
+	         ,	TICKET_KIND   = #{ticketKind}	
+	         ,	TICKET_STATUS = #{ticketStatus}	
+	         ,	TICKET_TIME   = #{ticketTime}	
+	         ,	TICKET_PRICE  = #{ticketPrice}	
+		 WHERE  TICKET_NO     = #{ticketNo}	
+	</update>
+	
+	
+	
+	
+</mapper>	

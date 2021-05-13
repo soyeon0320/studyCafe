@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.scm.user.dao.MemberMapper">
+	
+	
+	<update id="insertMember">
+		INSERT 
+		  INTO  TB_MEMBER 
+		     (  MEM_ID
+	         ,  MEM_NAME
+	   		 ,  MEM_PASS
+	   	 	 ,  MEM_TEL
+	   		 ,  MEM_EMAIL
+	   		 ,  MEM_BIR
+	   		 ,  MEM_DELETED
+	   		 ,	MEM_ROUTE
+	   		 ,	MEM_GEN
+	   		 ,	MEM_REG_DATE
+			 ) 
+	    VALUES 
+	         (  #{memId}
+	   		 ,  #{memName}
+	   		 ,	#{memPass}
+	   		 ,	#{memTel}
+	   		 ,  #{memEmail}
+	   		 ,	#{memBir}
+	   		 ,	'N'
+	   		 ,	#{memRoute}
+	   		 ,	#{memGen}
+	   		 ,  SYSDATE
+			 )
+	
+	
+	</update>
+	
+	<select id="selectMember" resultType="member" parameterType="member">
+		SELECT  MEM_ID
+		     ,  MEM_NAME
+		     ,  MEM_PASS
+		     ,  MEM_TEL
+		     ,  MEM_EMAIL
+		     ,  MEM_BIR
+		     ,  MEM_DELETED
+		     ,  MEM_ROUTE
+		     ,  MEM_GEN
+		  FROM  TB_MEMBER
+		 WHERE  MEM_ID = #{memId}
+	</select>
+	
+	<select id="selectMemberByTel" resultType="member" parameterType="member">
+		SELECT  MEM_ID
+		     ,  MEM_NAME
+		     ,  MEM_PASS
+		     ,  MEM_TEL
+		     ,  MEM_EMAIL
+		     ,  MEM_BIR
+		     ,  MEM_DELETED
+		     ,  MEM_ROUTE
+		     ,  MEM_GEN
+		  FROM  TB_MEMBER
+	  	 WHERE  MEM_TEL = #{memTel}
+	</select>
+	
+	<select id="selectMemberByEmail" resultType="member" parameterType="member">
+		SELECT  MEM_ID
+		     ,  MEM_NAME
+		     ,  MEM_PASS
+		     ,  MEM_TEL
+		     ,  MEM_EMAIL
+		     ,  MEM_BIR
+		     ,  MEM_DELETED
+		     ,  MEM_ROUTE
+		     ,  MEM_GEN
+		  FROM  TB_MEMBER
+	  	 WHERE  MEM_EMAIL = #{memEmail}
+	</select>
+	
+	<select id="selectMemberbyNTG" resultType="member" parameterType="member">
+		SELECT  MEM_ID
+		     ,	MEM_NAME
+		     ,	MEM_PASS
+		     ,	MEM_TEL
+		     ,	MEM_EMAIL
+		     ,	MEM_BIR
+		     ,	MEM_DELETED
+		     ,	MEM_ROUTE
+		   	 ,	MEM_GEN
+		  FROM  TB_MEMBER
+		 WHERE  MEM_NAME = #{memName}
+		   AND  MEM_TEL  = #{memTel}
+		   AND  MEM_GEN  = #{memGen}
+	</select>
+	
+	<select id="selectMemberbyIN" resultType="member" parameterType="member">
+		SELECT  MEM_ID
+		     ,	MEM_NAME
+		     ,	MEM_PASS
+		     ,	MEM_TEL
+		     ,	MEM_EMAIL
+		     ,	MEM_BIR
+		     ,	MEM_DELETED
+		     ,	MEM_ROUTE
+		   	 ,	MEM_GEN
+		  FROM  TB_MEMBER
+		 WHERE  MEM_NAME = #{memName}
+		   AND  MEM_ID   = #{memId}
+	</select>
+	
+	<update id="updatePass">
+		UPDATE  TB_MEMBER
+	       SET  MEM_PASS  = #{memPass}
+	     WHERE  MEM_ID   = #{memId}
+	       AND  MEM_NAME = #{memName}
+	</update>
+
+	<select id="selectMemberbyPI" resultType="member" parameterType="member">
+		SELECT  MEM_ID
+		     ,	MEM_NAME
+		     ,	MEM_PASS
+		     ,	MEM_TEL
+		     ,	MEM_EMAIL
+		     ,	MEM_BIR
+		     ,	MEM_DELETED
+		     ,	MEM_ROUTE
+		   	 ,	MEM_GEN
+		  FROM  TB_MEMBER
+		 WHERE  MEM_PASS = #{memPass}
+		   AND  MEM_ID   = #{memId}
+	</select>
+	
+	<select id="getStoreInInfo" resultType="kr.co.scm.common.vo.UseInfoVO">
+		SELECT  B.MEM_NAME
+			 ,  A.SEAT_IN
+			 ,  A.SEAT_OUT
+			 ,  C.STORE_NAME
+			 ,  A.SEAT_NO
+		  FROM  TB_RENT_SEAT A , TB_MEMBER B, TB_STORE C
+		 WHERE  A.MEM_ID = B.MEM_ID
+	  <![CDATA[
+		   AND  A.STORE_CODE = C.STORE_CODE
+		   AND  A.MEM_ID = #{memId}
+		   AND  A.SEAT_IN < SYSDATE
+		   AND  A.SEAT_OUT is null
+			]]>
+	
+	</select>
+
+
+</mapper>
